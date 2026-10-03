@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="KnockBoard">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>KnockBoard</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -45,7 +48,9 @@ dialog::backdrop{background:#000b}
 .kb{padding:16px 6px;font-weight:700;color:#fff;border:none;border-radius:12px}
 #auth,#pay{max-width:380px;margin:0 auto;padding:calc(70px + env(safe-area-inset-top,0px)) 20px}
 #auth h1,#pay h1{font-size:34px;margin-bottom:6px}
+.legal{color:var(--m);font-size:12px;margin-top:18px}.legal a{color:var(--m)}
 #amsg{color:#ff7b7b;min-height:20px;font-size:13px;margin:8px 0}
+#net{background:#3a2a00;color:#ffb26b;border:1px solid #6b4a00;border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:10px}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -58,6 +63,7 @@ dialog::backdrop{background:#000b}
   <label>Password</label><input id="pw" type="password" autocomplete="current-password">
   <div id="amsg"></div>
   <div class="row"><button class="pri" id="login">Log in</button><button id="signup">Create account</button></div>
+  <div class="legal">By creating an account you agree to the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.</div>
 </div>
 
 <div id="pay" hidden>
@@ -66,10 +72,12 @@ dialog::backdrop{background:#000b}
   <div id="paymsg" style="color:#ffb26b;margin-bottom:12px"></div>
   <button class="pri" id="paygo" style="width:100%;padding:14px">Start free trial</button>
   <div class="row" style="margin-top:10px"><button id="payref">I've subscribed, refresh</button><button id="payout">Log out</button></div>
+  <div class="legal">Cancel anytime. See the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.</div>
 </div>
 
 <div id="app" hidden>
 <div class="wrap">
+  <div id="net" hidden></div>
   <div class="bar"><h1>Knock<span>Board</span></h1><span><button id="manage">Manage plan</button> <button id="out">Log out</button></span></div>
   <div class="tabs"><button class="chip on" data-tab="C">Customers</button><button class="chip" data-tab="K">Door knocking</button></div>
 
@@ -131,7 +139,7 @@ const amsg=t=>$("amsg").textContent=t;
 $("login").onclick=async()=>{amsg("");const {error}=await sb.auth.signInWithPassword({email:$("em").value.trim(),password:$("pw").value});if(error)amsg(error.message)};
 $("signup").onclick=async()=>{amsg("");const {data,error}=await sb.auth.signUp({email:$("em").value.trim(),password:$("pw").value});
   if(error)amsg(error.message);else if(!data.session)amsg("Check your email to confirm your account, then log in.")};
-$("out").onclick=()=>sb.auth.signOut();
+$("out").onclick=()=>logout();
 $("manage").onclick=async()=>{
   const b=$("manage");b.disabled=true;b.textContent="Opening…";
   try{const {data,error}=await sb.functions.invoke("portal");
@@ -142,25 +150,103 @@ $("manage").onclick=async()=>{
 const PAY="https://buy.stripe.com/test_00weVe8553w83HM7Fc8g000";
 let user=null;
 async function gate(){
-  const {data}=await sb.from("subscriptions").select("status").maybeSingle();
-  const ok=!!data&&["active","trialing"].includes(data.status);
+  if(!user)return;
+  const r=await sb.from("subscriptions").select("status").maybeSingle(),gk="kb_sub_"+user.id;
+  let ok=false,msg="";
+  if(isNet(r)){ // offline: trust the last successful check for 7 days
+    const g=lsGet(gk,null);ok=!!(g&&g.ok&&Date.now()-g.t<7*864e5);
+    if(!ok)msg="You're offline. Connect to the internet once to verify your subscription.";
+  }else{
+    ok=!!r.data&&["active","trialing"].includes(r.data.status);lsSet(gk,{ok,t:Date.now()});
+    if(!ok&&r.data)msg="Your subscription isn't active. Start a new one to keep using KnockBoard.";
+  }
   $("auth").hidden=true;$("pay").hidden=ok;$("app").hidden=!ok;
-  if(ok)loadAll();else $("paymsg").textContent=data?"Your subscription isn't active. Start a new one to keep using KnockBoard.":"";
+  if(ok)loadAll();else $("paymsg").textContent=msg;
 }
 sb.auth.onAuthStateChange((_e,s)=>{user=s?s.user:null;
   if(user)setTimeout(gate,0);
-  else{$("auth").hidden=false;$("pay").hidden=true;$("app").hidden=true;customers=[];pins=[];if(mapReady)drawPins()}});
+  else{$("auth").hidden=false;$("pay").hidden=true;$("app").hidden=true;customers=[];pins=[];queue=[];qUser=null;if(mapReady)drawPins();netUI()}});
 $("paygo").onclick=()=>{location.href=PAY+"?client_reference_id="+encodeURIComponent(user.id)+"&prefilled_email="+encodeURIComponent(user.email)};
 $("payref").onclick=gate;
-$("payout").onclick=()=>sb.auth.signOut();
+$("payout").onclick=()=>logout();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&user&&!$("pay").hidden)gate()});
 
-async function loadAll(){
-  const [c,p]=await Promise.all([sb.from("customers").select("*").order("created_at",{ascending:false}),sb.from("pins").select("*")]);
-  customers=c.data||[];pins=p.data||[];
+/* ---------- Offline-first data layer ---------- */
+const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const lsDel=k=>{try{localStorage.removeItem(k)}catch(e){}};
+const newId=()=>(window.crypto&&crypto.randomUUID)?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c=="x"?r:r&3|8).toString(16)});
+let queue=[],qUser=null,syncing=false,inflight=null,dropped=0,ver=0;
+const K=n=>"kb_"+n+"_"+(user?user.id:"x");
+const saveQ=()=>lsSet(K("q"),queue),saveC=()=>lsSet(K("c"),{customers,pins});
+const isNet=r=>!!r&&!!r.error&&(!navigator.onLine||r.status===0||r.status>=500||r.status===401||/fetch|network|load failed|timeout|aborted/i.test(r.error.message||""));
+function refresh(){
   $("svcs").innerHTML=[...new Set([...customers,...pins].map(r=>r.service).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join("");
   render();drawPins();
 }
+function netUI(){
+  const n=queue.length,b=$("net");let t="";
+  if(!navigator.onLine)t="Offline. "+(n?n+" change"+(n>1?"s":"")+" saved on this phone. They sync when you're back online.":"Changes are saved on this phone and sync when you're back online.");
+  else if(n)t="Syncing "+n+" change"+(n>1?"s":"")+"…";
+  if(dropped)t+=(t?" ":"")+dropped+" change"+(dropped>1?"s":"")+" couldn't be saved (tap to dismiss).";
+  b.textContent=t;b.hidden=!t;
+}
+$("net").onclick=()=>{dropped=0;netUI()};
+function mutate(t,table,id,row){
+  if(!user)return;ver++;
+  const arr=table==="customers"?customers:pins,i=arr.findIndex(r=>r.id===id),mine=x=>x.table===table&&x.id===id&&x!==inflight;
+  if(t==="ins"){arr.push({id,user_id:user.id,created_at:new Date().toISOString(),...row});queue.push({t,table,id,row:{...row}})}
+  else if(t==="upd"){
+    if(i>=0)Object.assign(arr[i],row);
+    const q=queue.find(x=>mine(x)&&(x.t==="ins"||x.t==="upd"));
+    if(q)Object.assign(q.row,row);else queue.push({t,table,id,row:{...row}});
+  }else{
+    if(i>=0)arr.splice(i,1);
+    if(queue.some(x=>mine(x)&&x.t==="ins"))queue=queue.filter(x=>!(x.table===table&&x.id===id&&x!==inflight)); // never reached the server: just cancel it
+    else{queue=queue.filter(x=>!(mine(x)&&x.t==="upd"));queue.push({t:"del",table,id})}
+  }
+  saveQ();saveC();refresh();netUI();flush();
+}
+async function flush(){
+  if(syncing||!user)return;syncing=true;
+  try{
+    while(queue.length){
+      const it=inflight=queue[0];let r;
+      try{
+        const tb=sb.from(it.table);
+        r=it.t==="ins"?await tb.upsert({id:it.id,user_id:user.id,...it.row}):it.t==="upd"?await tb.update(it.row).eq("id",it.id):await tb.delete().eq("id",it.id);
+      }catch(e){break}
+      if(isNet(r))break;
+      if(r.error)dropped++;
+      const i=queue.indexOf(it);if(i>=0)queue.splice(i,1);saveQ();netUI();
+    }
+  }finally{inflight=null;syncing=false;netUI()}
+}
+async function pull(){
+  if(!user||syncing||queue.length)return;const v=ver;
+  let c,p;
+  try{[c,p]=await Promise.all([sb.from("customers").select("*").order("created_at",{ascending:false}),sb.from("pins").select("*")])}catch(e){return}
+  if(c.error||p.error||v!==ver||queue.length||syncing)return;
+  customers=c.data||[];pins=p.data||[];saveC();refresh();
+}
+async function loadAll(){
+  if(qUser!==user.id){
+    qUser=user.id;queue=lsGet(K("q"),[]);dropped=0;
+    const c=lsGet(K("c"),null);if(c){customers=c.customers||[];pins=c.pins||[];refresh()}
+  }
+  netUI();await flush();await pull();
+}
+function logout(){
+  if(user&&!navigator.onLine&&!confirm("You're offline, so you won't be able to log back in until you have service. Log out anyway?"))return;
+  if(user&&queue.length&&!confirm(queue.length+" change(s) haven't synced yet. They stay on this phone and sync after you log back in. Log out anyway?"))return;
+  if(user&&!queue.length){lsDel(K("c"));lsDel(K("q"));lsDel("kb_sub_"+user.id)}
+  sb.auth.signOut({scope:"local"});
+}
+const resync=()=>{if(user&&!$("app").hidden)flush().then(pull)};
+addEventListener("online",resync);addEventListener("offline",netUI);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)resync()});
+setInterval(()=>{if(queue.length)flush()},15000);
+if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 
 /* ---------- Customers ---------- */
 function render(){
@@ -195,20 +281,20 @@ function openForm(r){
 }
 $("add").onclick=()=>openForm();
 $("cancel").onclick=()=>$("dlg").close();
-$("save").onclick=async()=>{
+$("save").onclick=()=>{
   const name=$("f_name").value.trim();if(!name){$("f_name").focus();return}
   const d={name,phone:$("f_phone").value.trim(),email:$("f_email").value.trim(),address:$("f_addr").value.trim(),service:$("f_svc").value.trim(),
     status:$("f_status").value,price:+$("f_price").value||0,source:$("f_src").value.trim(),job_date:$("f_job").value||null,follow_up:$("f_fu").value||null,notes:$("f_notes").value.trim()};
-  const r=editId?await sb.from("customers").update(d).eq("id",editId):await sb.from("customers").insert(d);
-  if(r.error){alert(r.error.message);return}$("dlg").close();loadAll();
+  if(editId)mutate("upd","customers",editId,d);else mutate("ins","customers",newId(),d);
+  $("dlg").close();
 };
-$("del").onclick=async()=>{if(editId&&confirm("Delete this customer?")){await sb.from("customers").delete().eq("id",editId);$("dlg").close();loadAll()}};
+$("del").onclick=()=>{if(editId&&confirm("Delete this customer?")){mutate("del","customers",editId);$("dlg").close()}};
 $("q").oninput=render;
 $("chips").onclick=e=>{const s=e.target.dataset.s;if(s){filter=s;render()}};
-$("list").onclick=async e=>{
+$("list").onclick=e=>{
   const ed=e.target.dataset.edit,adv=e.target.dataset.adv;
   if(ed)openForm(customers.find(r=>r.id===ed));
-  if(adv){const r=customers.find(r=>r.id===adv);await sb.from("customers").update({status:ST[ST.indexOf(r.status)+1]}).eq("id",adv);loadAll()}
+  if(adv){const r=customers.find(r=>r.id===adv);if(r)mutate("upd","customers",adv,{status:ST[ST.indexOf(r.status)+1]})}
 };
 
 /* ---------- Door knocking map ---------- */
@@ -243,24 +329,23 @@ function openPin(p){
   $("p_date").value=d?d.toLocaleDateString("en-CA"):"";$("p_time").value=d?d.toTimeString().slice(0,5):"";
   $("pform").hidden=!["Sold","Quoted"].includes(p.result);setF(p.result);$("prem").hidden=!p.id;$("pdlg").showModal();
 }
-async function savePin({dt,tm,...o}){
+function savePin({dt,tm,...o}){
   const row={lat:cur.lat,lng:cur.lng,...o};
-  const r=cur.id?await sb.from("pins").update(row).eq("id",cur.id):await sb.from("pins").insert(row);
-  if(r.error){alert(r.error.message);return}
+  if(cur.id)mutate("upd","pins",cur.id,row);else mutate("ins","pins",newId(),row);
   if((o.result==="Sold"||o.result==="Quoted")&&o.name){
     const q=o.result==="Quoted",ex=customers.find(c=>c.name===o.name&&(c.phone||"")===(o.phone||"")),
       d={name:o.name,phone:o.phone,service:o.service,status:q?"Quoted":"Scheduled",price:o.price||0,source:"Door knock",job_date:q?null:(dt||null),follow_up:q?(dt||null):null,notes:tm?"Time: "+tm:null};
-    if(!ex)await sb.from("customers").insert(d);
-    else if(!q&&["Lead","Quoted"].includes(ex.status))await sb.from("customers").update({status:"Scheduled",price:d.price,job_date:d.job_date,service:d.service}).eq("id",ex.id);
+    if(!ex)mutate("ins","customers",newId(),d);
+    else if(!q&&["Lead","Quoted"].includes(ex.status))mutate("upd","customers",ex.id,{status:"Scheduled",price:d.price,job_date:d.job_date,service:d.service});
   }
-  $("pdlg").close();loadAll();
+  $("pdlg").close();
 }
 document.querySelectorAll("#pdlg .kb").forEach(b=>b.onclick=()=>{
   const r=b.dataset.r;if(r==="Sold"||r==="Quoted"){cur={...cur,result:r};$("pform").hidden=false;setF(r)}else savePin({result:r})});
 $("p_save").onclick=()=>{const d=$("p_date").value,t=$("p_time").value;
   savePin({result:cur.result,name:$("p_name").value.trim(),phone:$("p_phone").value.trim(),price:+$("p_price").value||0,service:$("p_svc").value.trim(),
     visit_at:d?new Date(d+"T"+(t||"09:00")).toISOString():null,dt:d,tm:t})};
-$("prem").onclick=async()=>{if(cur.id){await sb.from("pins").delete().eq("id",cur.id);$("pdlg").close();loadAll()}};
+$("prem").onclick=()=>{if(cur.id){mutate("del","pins",cur.id);$("pdlg").close()}};
 $("pclose").onclick=()=>$("pdlg").close();
 
 document.querySelector(".tabs").onclick=e=>{
