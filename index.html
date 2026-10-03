@@ -51,6 +51,13 @@ dialog::backdrop{background:#000b}
 .legal{color:var(--m);font-size:12px;margin-top:18px}.legal a{color:var(--m)}
 #amsg{color:#ff7b7b;min-height:20px;font-size:13px;margin:8px 0}
 #net{background:#3a2a00;color:#ffb26b;border:1px solid #6b4a00;border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:10px}
+.rev{background:var(--c);border:1px solid var(--b);border-radius:16px;padding:16px;margin-bottom:10px}
+.lb{display:block;text-transform:uppercase;letter-spacing:1.2px;font-size:11px;color:var(--m)}
+.rev .big{font-size:40px;font-weight:800;color:var(--a);line-height:1.1;margin:6px 0}
+.r3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}.r3 .st b{color:var(--a)}
+input[type=checkbox]{width:22px;height:22px;padding:0;flex:none;margin:2px 0 0;accent-color:var(--a)}
+.sendrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.sendrow button{padding:12px 4px;color:var(--a);font-weight:600}
+summary{cursor:pointer;color:var(--a);font-weight:600;padding:6px 0}
 html,body{touch-action:manipulation;overscroll-behavior:none;-webkit-text-size-adjust:100%}
 /* door-knocking tab: page is locked to the screen, only the map moves */
 body.kmode{position:fixed;inset:0;overflow:hidden}
@@ -88,9 +95,15 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
   <div class="tabs"><button class="chip on" data-tab="C">Customers</button><button class="chip" data-tab="K">Door knocking</button></div>
 
   <div id="tabC">
+    <div id="rev"></div>
     <div class="stats" id="stats"></div>
+    <details style="margin-bottom:8px"><summary>Text message template</summary>
+      <textarea id="tpl" style="min-height:90px"></textarea>
+      <div class="sub">{name} becomes each customer's first name. Saved on this phone.</div></details>
     <input id="q" placeholder="Search name, phone, address">
     <div class="chips" id="chips"></div>
+    <div class="sendrow"><button id="selall">Select all</button><button id="grp">Group text</button><button id="one">One by one</button></div>
+    <div class="sub" style="margin-bottom:10px">Group text puts everyone in one thread (no names). One by one opens a separate message for each customer; you tap Send in Messages for each.</div>
     <div id="list"></div>
   </div>
 
@@ -115,6 +128,15 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
   <div class="row"><div><label>Job date</label><input id="f_job" type="date"></div><div><label>Follow up on</label><input id="f_fu" type="date"></div></div>
   <label>Notes</label><textarea id="f_notes"></textarea>
   <div class="row" style="margin-top:12px;justify-content:space-between"><button id="del" style="color:#ff5c5c;flex:none">Delete</button><span style="text-align:right"><button id="cancel">Cancel</button> <button class="pri" id="save">Save</button></span></div>
+</dialog>
+
+<dialog id="odlg">
+  <h2 id="ot" style="margin:0 0 4px;font-size:18px">Message</h2>
+  <div class="sub" id="oto"></div>
+  <div class="card" id="omsg" style="white-space:pre-wrap;margin-top:10px"></div>
+  <a class="btn pri" id="ogo" style="display:block;text-align:center;padding:14px;width:100%">Open in Messages</a>
+  <div class="sub" style="margin:8px 0">Tap Send in Messages, then come back here. The next customer loads automatically.</div>
+  <div class="row"><button id="oskip">Skip</button><button id="oclose">Stop</button></div>
 </dialog>
 
 <dialog id="pdlg">
@@ -238,6 +260,7 @@ async function pull(){
 async function loadAll(){
   if(qUser!==user.id){
     qUser=user.id;queue=lsGet(K("q"),[]);dropped=0;
+    $("tpl").value=lsGet(K("tpl"),DEFTPL);
     const c=lsGet(K("c"),null);if(c){customers=c.customers||[];pins=c.pins||[];refresh()}
   }
   netUI();await flush();await pull();
@@ -258,6 +281,7 @@ if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWor
 
 /* ---------- Customers ---------- */
 function render(){
+  revUI();
   const q=$("q").value.toLowerCase().trim(),open=customers.filter(r=>["Lead","Quoted"].includes(r.status)),
     due=customers.filter(r=>r.follow_up&&r.follow_up<=today()&&!["Paid","Done"].includes(r.status));
   $("stats").innerHTML=
@@ -268,14 +292,17 @@ function render(){
   $("chips").innerHTML=["All",...ST].map(s=>`<button class="chip ${s===filter?"on":""}" data-s="${s}">${s}${s==="All"?"":" ("+customers.filter(r=>r.status===s).length+")"}</button>`).join("");
   const list=customers.filter(r=>(filter==="All"||r.status===filter)&&(!q||[r.name,r.phone,r.address,r.email].join(" ").toLowerCase().includes(q)))
     .sort((a,b)=>(a.follow_up||"9999").localeCompare(b.follow_up||"9999"));
+  vis=list.filter(r=>(r.phone||"").replace(/\D/g,"")).map(r=>r.id);
+  for(const id of [...sel])if(!customers.some(c=>c.id===id))sel.delete(id);
+  updSel();
   $("list").innerHTML=list.length?list.map(r=>{
     const ph=(r.phone||"").replace(/[^\d+]/g,""),late=r.follow_up&&r.follow_up<=today()&&!["Paid","Done"].includes(r.status),next=ST[ST.indexOf(r.status)+1];
-    return `<div class="card"><div class="top"><div><div class="nm">${esc(r.name)}</div>
+    return `<div class="card"><div class="top"><div style="display:flex;gap:10px;min-width:0">${ph?`<input type="checkbox" data-sel="${r.id}" ${sel.has(r.id)?"checked":""}>`:""}<div><div class="nm">${esc(r.name)}</div>
       <div class="sub">${esc(r.service)}${r.price?" · "+money(r.price):""}</div>
       ${r.address?`<div class="sub">${esc(r.address)}</div>`:""}
       ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}</div>`:""}
       ${r.follow_up?`<div class="sub ${late?"due":""}">Follow up: ${esc(r.follow_up)}</div>`:""}
-      ${r.notes?`<div class="sub">${esc(r.notes)}</div>`:""}</div><span class="badge">${esc(r.status)}</span></div>
+      ${r.notes?`<div class="sub">${esc(r.notes)}</div>`:""}</div></div><span class="badge">${esc(r.status)}</span></div>
       <div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>`:""}
       ${r.address?`<a class="btn" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}
       ${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button data-edit="${r.id}">Edit</button></div></div>`}).join("")
@@ -300,10 +327,55 @@ $("del").onclick=()=>{if(editId&&confirm("Delete this customer?")){mutate("del",
 $("q").oninput=render;
 $("chips").onclick=e=>{const s=e.target.dataset.s;if(s){filter=s;render()}};
 $("list").onclick=e=>{
+  if(e.target.dataset.sel){const id=e.target.dataset.sel;e.target.checked?sel.add(id):sel.delete(id);updSel();return}
   const ed=e.target.dataset.edit,adv=e.target.dataset.adv;
   if(ed)openForm(customers.find(r=>r.id===ed));
   if(adv){const r=customers.find(r=>r.id===adv);if(r)mutate("upd","customers",adv,{status:ST[ST.indexOf(r.status)+1]})}
 };
+
+/* ---------- Revenue + texting ---------- */
+let vis=[];const sel=new Set();
+function revCalc(pins,now){
+  const sold=pins.filter(p=>p.result==="Sold"),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()),
+    wk=new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()-d0.getDay()),mo=new Date(now.getFullYear(),now.getMonth(),1),
+    sum=a=>a.reduce((s,p)=>s+(+p.price||0),0),since=t=>sold.filter(p=>new Date(p.created_at)>=t);
+  return{all:sum(sold),n:sold.length,doors:pins.length,close:pins.length?Math.round(sold.length/pins.length*100):0,
+    day:[sum(since(d0)),since(d0).length],week:[sum(since(wk)),since(wk).length],month:[sum(since(mo)),since(mo).length]};
+}
+function revUI(){
+  const r=revCalc(pins,new Date()),c=(l,v)=>`<div class="st"><span class="lb">${l}</span><b>${money(v[0])}</b><span>${v[1]} sale${v[1]===1?"":"s"}</span></div>`;
+  $("rev").innerHTML=`<div class="rev"><span class="lb">All-time revenue</span><div class="big">${money(r.all)}</div>
+    <span class="sub">${r.n} sale${r.n===1?"":"s"} · ${r.doors} door${r.doors===1?"":"s"} knocked · ${r.close}% close rate</span></div>
+    <div class="r3">${c("Today",r.day)}${c("This week",r.week)}${c("This month",r.month)}</div>`;
+}
+const DEFTPL="Hi {name}, thanks for chatting today! Let me know if you have any questions.";
+const firstName=n=>(String(n||"").trim().split(/\s+/)[0])||"there";
+const fillTpl=(t,name)=>t.replace(/\{name\}/gi,name);
+const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const smsHref=(nums,body)=>"sms:"+nums.join(",")+(isIOS?"&":"?")+"body="+encodeURIComponent(body);
+const phoneOf=r=>(r.phone||"").replace(/[^\d+]/g,"");
+const picked=()=>customers.filter(r=>sel.has(r.id)&&phoneOf(r));
+function updSel(){
+  const n=sel.size,all=vis.length&&vis.every(id=>sel.has(id));
+  $("selall").textContent=all?"Clear all":"Select all";
+  $("grp").textContent="Group text"+(n?" ("+n+")":"");$("one").textContent="One by one"+(n?" ("+n+")":"");
+}
+$("selall").onclick=()=>{const all=vis.length&&vis.every(id=>sel.has(id));vis.forEach(id=>all?sel.delete(id):sel.add(id));render()};
+$("tpl").oninput=()=>lsSet(K("tpl"),$("tpl").value);
+$("grp").onclick=()=>{const p=picked();if(!p.length){alert("Tap the boxes next to customers first, or tap Select all.");return}
+  location.href=smsHref(p.map(phoneOf),fillTpl($("tpl").value||DEFTPL,"there"))};
+let oq=[],oi=0,oadv=false;
+function showO(){
+  if(oi>=oq.length){$("odlg").close();return}
+  const r=oq[oi];$("ot").textContent="Message "+(oi+1)+" of "+oq.length;$("oto").textContent=r.name+" · "+r.phone;
+  const body=fillTpl($("tpl").value||DEFTPL,firstName(r.name));$("omsg").textContent=body;$("ogo").href=smsHref([phoneOf(r)],body);
+}
+$("one").onclick=()=>{const p=picked();if(!p.length){alert("Tap the boxes next to customers first, or tap Select all.");return}
+  oq=p;oi=0;oadv=false;showO();$("odlg").showModal()};
+$("ogo").onclick=()=>{oadv=true};
+$("oskip").onclick=()=>{oi++;oadv=false;showO()};
+$("oclose").onclick=()=>{oadv=false;$("odlg").close()};
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&oadv&&$("odlg").open){oadv=false;oi++;showO()}});
 
 /* ---------- Door knocking map ---------- */
 const MAPBOX_TOKEN="pk.eyJ1Ijoia25vY2tib2FyZCIsImEiOiJjbXVzMWNrZ3UwZjRqMndwcHFkdXgwdXM2In0.GbvloA3x7gjZPfBHxVVbSw"; // public pk. token, restricted to this site in the Mapbox dashboard
