@@ -70,7 +70,7 @@ dialog::backdrop{background:#000b}
 
 <div id="app" hidden>
 <div class="wrap">
-  <div class="bar"><h1>Knock<span>Board</span></h1><button id="out">Log out</button></div>
+  <div class="bar"><h1>Knock<span>Board</span></h1><span><button id="manage">Manage plan</button> <button id="out">Log out</button></span></div>
   <div class="tabs"><button class="chip on" data-tab="C">Customers</button><button class="chip" data-tab="K">Door knocking</button></div>
 
   <div id="tabC">
@@ -132,6 +132,13 @@ $("login").onclick=async()=>{amsg("");const {error}=await sb.auth.signInWithPass
 $("signup").onclick=async()=>{amsg("");const {data,error}=await sb.auth.signUp({email:$("em").value.trim(),password:$("pw").value});
   if(error)amsg(error.message);else if(!data.session)amsg("Check your email to confirm your account, then log in.")};
 $("out").onclick=()=>sb.auth.signOut();
+$("manage").onclick=async()=>{
+  const b=$("manage");b.disabled=true;b.textContent="Opening…";
+  try{const {data,error}=await sb.functions.invoke("portal");
+    if(error||!data||!data.url)throw new Error((data&&data.error==="no_subscription")?"No billing account yet. Subscribe through the trial screen first.":"Couldn't open billing. Try again.");
+    location.href=data.url}
+  catch(e){alert(e.message||"Couldn't open billing.")}
+  b.disabled=false;b.textContent="Manage plan"};
 const PAY="https://buy.stripe.com/test_00weVe8553w83HM7Fc8g000";
 let user=null;
 async function gate(){
