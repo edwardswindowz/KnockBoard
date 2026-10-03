@@ -298,11 +298,20 @@ $("list").onclick=e=>{
 };
 
 /* ---------- Door knocking map ---------- */
-const SAT="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",STR="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png";
+const MAPBOX_TOKEN="pk.eyJ1Ijoia25vY2tib2FyZCIsImEiOiJjbXVzMWNrZ3UwZjRqMndwcHFkdXgwdXM2In0.GbvloA3x7gjZPfBHxVVbSw"; // public pk. token, restricted to this site in the Mapbox dashboard
+function tiles(satellite){
+  if(MAPBOX_TOKEN.startsWith("pk.")){
+    const st=satellite?"satellite-v9":"dark-v11";
+    return L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/"+st+"/tiles/512/{z}/{x}/{y}?access_token="+MAPBOX_TOKEN,
+      {tileSize:512,zoomOffset:-1,maxZoom:19,attribution:"© Mapbox © OpenStreetMap"});
+  }
+  return satellite?L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Esri"})
+    :L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",{maxZoom:19,attribution:"CARTO"});
+}
 function initMap(){
   if(mapReady){map.invalidateSize();return}mapReady=true;
   map=L.map("map",{zoomControl:false}).setView([39.5,-98.35],4);
-  base=L.tileLayer(SAT,{maxZoom:19,attribution:"Esri"}).addTo(map);
+  base=tiles(true).addTo(map);
   layer=L.layerGroup().addTo(map);
   map.on("click",e=>openPin({lat:e.latlng.lat,lng:e.latlng.lng}));
   if(navigator.geolocation)navigator.geolocation.watchPosition(p=>{
@@ -319,7 +328,7 @@ function drawPins(){
   $("kstats").innerHTML=["Sold","Quoted","Not home","No"].map(r=>`<div class="st"><b style="color:${COL[r]}">${c(r)}</b><span>${r==="Quoted"?"Quoted/<wbr>Waiting":r}</span></div>`).join("")+`<div class="st"><b>${pins.length}</b><span>Doors</span></div>`;
 }
 $("kme").onclick=()=>{if(meMark)map.setView(meMark.getLatLng(),18);else $("kmsg").textContent="Waiting for your location…"};
-$("ksat").onclick=()=>{sat=!sat;map.removeLayer(base);base=L.tileLayer(sat?SAT:STR,{maxZoom:19,attribution:sat?"Esri":"CARTO"}).addTo(map);base.bringToBack();$("ksat").textContent=sat?"Street view":"Satellite"};
+$("ksat").onclick=()=>{sat=!sat;map.removeLayer(base);base=tiles(sat).addTo(map);base.bringToBack();$("ksat").textContent=sat?"Street view":"Satellite"};
 
 function setF(r){$("p_save").textContent=r==="Quoted"?"Save quote":"Save sale";$("p_dl").textContent=r==="Quoted"?"Follow-up date":"Date"}
 function openPin(p){
