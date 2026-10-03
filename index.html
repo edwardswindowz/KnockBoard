@@ -43,8 +43,8 @@ dialog::backdrop{background:#000b}
 .kbs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
 #kstats{grid-template-columns:repeat(5,1fr);gap:6px}#kstats .st{padding:8px 4px;text-align:center}
 .kb{padding:16px 6px;font-weight:700;color:#fff;border:none;border-radius:12px}
-#auth{max-width:380px;margin:0 auto;padding:calc(70px + env(safe-area-inset-top,0px)) 20px}
-#auth h1{font-size:34px;margin-bottom:6px}
+#auth,#pay{max-width:380px;margin:0 auto;padding:calc(70px + env(safe-area-inset-top,0px)) 20px}
+#auth h1,#pay h1{font-size:34px;margin-bottom:6px}
 #amsg{color:#ff7b7b;min-height:20px;font-size:13px;margin:8px 0}
 [hidden]{display:none!important}
 </style>
@@ -58,6 +58,14 @@ dialog::backdrop{background:#000b}
   <label>Password</label><input id="pw" type="password" autocomplete="current-password">
   <div id="amsg"></div>
   <div class="row"><button class="pri" id="login">Log in</button><button id="signup">Create account</button></div>
+</div>
+
+<div id="pay" hidden>
+  <h1>Knock<span>Board</span></h1>
+  <div class="sub" style="margin-bottom:22px">Start your 7-day free trial. Then $29/month. Cancel anytime.</div>
+  <div id="paymsg" style="color:#ffb26b;margin-bottom:12px"></div>
+  <button class="pri" id="paygo" style="width:100%;padding:14px">Start free trial</button>
+  <div class="row" style="margin-top:10px"><button id="payref">I've subscribed, refresh</button><button id="payout">Log out</button></div>
 </div>
 
 <div id="app" hidden>
@@ -124,8 +132,21 @@ $("login").onclick=async()=>{amsg("");const {error}=await sb.auth.signInWithPass
 $("signup").onclick=async()=>{amsg("");const {data,error}=await sb.auth.signUp({email:$("em").value.trim(),password:$("pw").value});
   if(error)amsg(error.message);else if(!data.session)amsg("Check your email to confirm your account, then log in.")};
 $("out").onclick=()=>sb.auth.signOut();
-sb.auth.onAuthStateChange((_e,s)=>{const on=!!s;$("auth").hidden=on;$("app").hidden=!on;
-  if(on)loadAll();else{customers=[];pins=[];if(mapReady)drawPins()}});
+const PAY="https://buy.stripe.com/test_00weVe8553w83HM7Fc8g000";
+let user=null;
+async function gate(){
+  const {data}=await sb.from("subscriptions").select("status").maybeSingle();
+  const ok=!!data&&["active","trialing"].includes(data.status);
+  $("auth").hidden=true;$("pay").hidden=ok;$("app").hidden=!ok;
+  if(ok)loadAll();else $("paymsg").textContent=data?"Your subscription isn't active. Start a new one to keep using KnockBoard.":"";
+}
+sb.auth.onAuthStateChange((_e,s)=>{user=s?s.user:null;
+  if(user)setTimeout(gate,0);
+  else{$("auth").hidden=false;$("pay").hidden=true;$("app").hidden=true;customers=[];pins=[];if(mapReady)drawPins()}});
+$("paygo").onclick=()=>{location.href=PAY+"?client_reference_id="+encodeURIComponent(user.id)+"&prefilled_email="+encodeURIComponent(user.email)};
+$("payref").onclick=gate;
+$("payout").onclick=()=>sb.auth.signOut();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&user&&!$("pay").hidden)gate()});
 
 async function loadAll(){
   const [c,p]=await Promise.all([sb.from("customers").select("*").order("created_at",{ascending:false}),sb.from("pins").select("*")]);
