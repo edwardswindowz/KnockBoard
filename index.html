@@ -67,7 +67,7 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 .kmode #tabM{flex:1;min-height:0;display:flex;flex-direction:column}
 #mmap{height:46vh;border-radius:12px;border:1px solid var(--b,#2a2a2a);margin:8px 0}
 .kmode #mmap{flex:1;height:auto;min-height:120px}
-.mvx{width:22px;height:22px;border-radius:50%;background:#fff;border:4px solid #ff6a00;box-sizing:border-box}
+.mvx{width:34px;height:34px;display:flex;align-items:center;justify-content:center}.mvx::after{content:"";width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid #ff6a00;box-sizing:border-box}
 #mres{max-height:30vh;overflow-y:auto}
 .marow{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}.marow span{flex:1}.marow b{color:var(--a)}
 [hidden]{display:none!important}
@@ -463,14 +463,14 @@ function mArea(pts){ // sq ft, local equirectangular projection (accurate for pr
 function mPerim(pts,close){let d=0;for(let i=0;i<pts.length-(close?0:1);i++){d+=mm.distance(pts[i],pts[(i+1)%pts.length])}return d*3.28084}
 function mInit(){
   if(mm){mm.invalidateSize();return}
-  mm=L.map("mmap",{zoomControl:false}).setView([39.5,-98.35],4);
-  tiles(true).addTo(mm);mm.drawn=L.layerGroup().addTo(mm);
+  mm=L.map("mmap",{zoomControl:false,maxZoom:22,zoomSnap:0.5,zoomDelta:0.5}).setView([39.5,-98.35],4);
+  const ml=tiles(true);ml.options.maxZoom=22;ml.options.maxNativeZoom=20;ml.addTo(mm);mm.drawn=L.layerGroup().addTo(mm);
   mm.on("click",e=>{mCur.push(e.latlng);mAddMk(e.latlng);mRedraw()});
   try{$("mppf").value=localStorage.getItem("kb_ppf")||""}catch(e){}
   if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{if(!mAreas.length&&!mCur.length)mm.setView([p.coords.latitude,p.coords.longitude],17)},()=>{},{maximumAge:60000});
 }
 function mAddMk(ll){
-  const mk=L.marker(ll,{draggable:true,icon:L.divIcon({className:"",html:'<div class="mvx"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(mm);
+  const mk=L.marker(ll,{draggable:true,icon:L.divIcon({className:"",html:'<div class="mvx"></div>',iconSize:[34,34],iconAnchor:[17,17]})}).addTo(mm);
   mk.on("drag",()=>{const i=mCurMk.indexOf(mk);if(i>=0){mCur[i]=mk.getLatLng();mRedraw(true)}});
   mCurMk.push(mk);
 }
@@ -519,7 +519,7 @@ async function mSearch(){
   $("mmsg").textContent="Searching…";
   try{const g=await mGeocode(q);
     if(!g){$("mmsg").textContent="Couldn't find that address. Try adding the city and state.";return}
-    mm.setView([g.lat,g.lng],19);$("mmsg").textContent=g.name+" — tap around the area to measure.";$("maddr").blur();
+    mm.setView([g.lat,g.lng],20);$("mmsg").textContent=g.name+" — tap around the area to measure.";$("maddr").blur();
   }catch(e){$("mmsg").textContent="Search needs internet. Check your connection and try again."}
 }
 $("mgo").onclick=mSearch;$("maddr").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();mSearch()}};
