@@ -64,6 +64,12 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 .kmode .wrap{height:100dvh;display:flex;flex-direction:column;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
 .kmode #tabK{flex:1;min-height:0;display:flex;flex-direction:column}
 .kmode #map{flex:1;height:auto;min-height:0}
+.kmode #tabM{flex:1;min-height:0;display:flex;flex-direction:column}
+#mmap{height:46vh;border-radius:12px;border:1px solid var(--b,#2a2a2a);margin:8px 0}
+.kmode #mmap{flex:1;height:auto;min-height:120px}
+.mvx{width:22px;height:22px;border-radius:50%;background:#fff;border:4px solid #ff6a00;box-sizing:border-box}
+#mres{max-height:30vh;overflow-y:auto}
+.marow{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}.marow span{flex:1}.marow b{color:var(--a)}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -92,7 +98,7 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 <div class="wrap">
   <div id="net" hidden></div>
   <div class="bar"><h1>Knock<span>Board</span></h1><span><button id="manage">Manage plan</button> <button id="out">Log out</button></span></div>
-  <div class="tabs"><button class="chip on" data-tab="C">Customers</button><button class="chip" data-tab="K">Door knocking</button></div>
+  <div class="tabs"><button class="chip on" data-tab="C">Customers</button><button class="chip" data-tab="K">Door knocking</button><button class="chip" data-tab="M">Measure</button></div>
 
   <div id="tabC">
     <div id="rev"></div>
@@ -112,6 +118,14 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
     <div id="map"></div>
     <div class="row" style="margin-top:8px"><button id="kme" style="flex:1">Find me</button><button id="ksat" style="flex:1">Street view</button></div>
     <div class="stats" id="kstats" style="margin-top:10px"></div>
+  </div>
+  <div id="tabM" hidden>
+    <div class="row"><input id="maddr" placeholder="Type the address (street, city, state)" style="flex:1"><button id="mgo" class="btn pri">Go</button></div>
+    <div id="mmap"></div>
+    <div class="sub" id="mmsg" style="margin-bottom:6px">Search an address, then tap around the area you want to measure. Drag a dot to fine-tune it.</div>
+    <div class="row"><button id="mdone" style="flex:1">Finish area</button><button id="mundo" style="flex:1">Undo point</button><button id="mclr" style="flex:1">Clear all</button></div>
+    <div id="mres"></div>
+    <div class="row" style="margin-top:6px;align-items:end"><div><label>Price per sq ft ($)</label><input id="mppf" type="number" step="0.01" inputmode="decimal" placeholder="0.15"></div><div><label>Quote</label><div id="mquote" style="font-size:26px;font-weight:800;color:var(--a)">$0</div></div></div>
   </div>
 </div>
 <button class="btn pri fab" id="add">+ New customer</button>
@@ -175,7 +189,7 @@ $("manage").onclick=async()=>{
     location.href=data.url}
   catch(e){alert(e.message||"Couldn't open billing.")}
   b.disabled=false;b.textContent="Manage plan"};
-const PAY="https://buy.stripe.com/test_00weVe8553w83HM7Fc8g000";
+const PAY="https://buy.stripe.com/aFa8wQ2Kld9jdumcK52oE00";
 let user=null;
 async function gate(){
   if(!user)return;
@@ -272,7 +286,7 @@ function logout(){
   sb.auth.signOut({scope:"local"});
 }
 document.addEventListener("gesturestart",e=>e.preventDefault());
-document.addEventListener("touchmove",e=>{if(e.touches.length>1&&!e.target.closest("#map"))e.preventDefault()},{passive:false});
+document.addEventListener("touchmove",e=>{if(e.touches.length>1&&!e.target.closest("#map,#mmap"))e.preventDefault()},{passive:false});
 const resync=()=>{if(user&&!$("app").hidden)flush().then(pull)};
 addEventListener("online",resync);addEventListener("offline",netUI);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)resync()});
@@ -437,12 +451,85 @@ $("p_save").onclick=()=>{const d=$("p_date").value,t=$("p_time").value;
 $("prem").onclick=()=>{if(cur.id){mutate("del","pins",cur.id);$("pdlg").close()}};
 $("pclose").onclick=()=>$("pdlg").close();
 
+/* ---- Measure tool: address -> satellite -> outline areas -> square feet -> quote ---- */
+
+let mm=null,mAreas=[],mCur=[],mCurMk=[],mCurLine=null;
+function mArea(pts){ // sq ft, local equirectangular projection (accurate for property-size shapes)
+  if(pts.length<3)return 0;const R=6378137,lat0=pts.reduce((a,p)=>a+p.lat,0)/pts.length*Math.PI/180;
+  const xy=pts.map(p=>[p.lng*Math.PI/180*R*Math.cos(lat0),p.lat*Math.PI/180*R]);
+  let a=0;for(let i=0;i<xy.length;i++){const j=(i+1)%xy.length;a+=xy[i][0]*xy[j][1]-xy[j][0]*xy[i][1]}
+  return Math.abs(a)/2*10.7639;
+}
+function mPerim(pts,close){let d=0;for(let i=0;i<pts.length-(close?0:1);i++){d+=mm.distance(pts[i],pts[(i+1)%pts.length])}return d*3.28084}
+function mInit(){
+  if(mm){mm.invalidateSize();return}
+  mm=L.map("mmap",{zoomControl:false}).setView([39.5,-98.35],4);
+  tiles(true).addTo(mm);mm.drawn=L.layerGroup().addTo(mm);
+  mm.on("click",e=>{mCur.push(e.latlng);mAddMk(e.latlng);mRedraw()});
+  try{$("mppf").value=localStorage.getItem("kb_ppf")||""}catch(e){}
+  if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{if(!mAreas.length&&!mCur.length)mm.setView([p.coords.latitude,p.coords.longitude],17)},()=>{},{maximumAge:60000});
+}
+function mAddMk(ll){
+  const mk=L.marker(ll,{draggable:true,icon:L.divIcon({className:"",html:'<div class="mvx"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(mm);
+  mk.on("drag",()=>{const i=mCurMk.indexOf(mk);if(i>=0){mCur[i]=mk.getLatLng();mRedraw(true)}});
+  mCurMk.push(mk);
+}
+function mRedraw(skipMk){
+  if(mCurLine){mm.removeLayer(mCurLine);mCurLine=null}
+  if(mCur.length>1)mCurLine=(mCur.length>2?L.polygon:L.polyline)(mCur,{color:"#ff6a00",weight:3,fillOpacity:.25}).addTo(mm);
+  mList();
+}
+function mList(){
+  const el=$("mres");let tot=0,h="";
+  mAreas.forEach((a,i)=>{tot+=a.sqft;h+=`<div class="marow"><span>Area ${i+1}</span><b>${Math.round(a.sqft).toLocaleString()} sq ft</b><button data-del="${i}" style="padding:4px 10px">✕</button></div>`});
+  const cs=mArea(mCur);
+  if(mCur.length>=3){h+=`<div class="marow"><span>Drawing…</span><b>${Math.round(cs).toLocaleString()} sq ft</b></div>`}
+  else if(mCur.length)h+=`<div class="marow"><span>Drawing… tap at least 3 points</span></div>`;
+  const all=tot+cs;
+  if(mAreas.length+((mCur.length>=3)?1:0)>0)h+=`<div class="marow" style="border-top:1px solid #333"><span><b>Total</b></span><b>${Math.round(all).toLocaleString()} sq ft</b></div>`;
+  el.innerHTML=h;
+  const ppf=parseFloat($("mppf").value)||0;
+  $("mquote").textContent="$"+(all*ppf).toLocaleString(undefined,{maximumFractionDigits:0});
+}
+$("mres").onclick=e=>{const i=e.target.dataset.del;if(i==null)return;const a=mAreas.splice(+i,1)[0];mm.drawn.removeLayer(a.layer);mList()};
+$("mppf").oninput=()=>{try{localStorage.setItem("kb_ppf",$("mppf").value)}catch(e){}mList()};
+$("mdone").onclick=()=>{
+  if(mCur.length<3){$("mmsg").textContent="Tap at least 3 points around the area first.";return}
+  const layer=L.polygon(mCur,{color:"#22c55e",weight:3,fillOpacity:.3}).addTo(mm.drawn);
+  mAreas.push({sqft:mArea(mCur),layer});
+  mCurMk.forEach(m=>mm.removeLayer(m));mCurMk=[];mCur=[];if(mCurLine){mm.removeLayer(mCurLine);mCurLine=null}
+  $("mmsg").textContent="Saved. Tap again to outline another area (house, driveway, patio…).";mList();
+};
+$("mundo").onclick=()=>{if(!mCur.length)return;mCur.pop();mm.removeLayer(mCurMk.pop());mRedraw()};
+$("mclr").onclick=()=>{
+  if((mAreas.length||mCur.length)&&!confirm("Clear everything you've outlined?"))return;
+  mAreas=[];mm.drawn.clearLayers();mCurMk.forEach(m=>mm.removeLayer(m));mCurMk=[];mCur=[];if(mCurLine){mm.removeLayer(mCurLine);mCurLine=null}mList();
+};
+async function mGeocode(q){
+  try{
+    const r=await fetch("https://api.mapbox.com/geocoding/v5/mapbox.places/"+encodeURIComponent(q)+".json?limit=1&country=us&access_token="+MAPBOX_TOKEN);
+    if(r.ok){const j=await r.json();const f=j.features&&j.features[0];if(f)return{lat:f.center[1],lng:f.center[0],name:f.place_name}}
+  }catch(e){}
+  const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q="+encodeURIComponent(q));
+  const j=await r.json();if(j[0])return{lat:+j[0].lat,lng:+j[0].lon,name:j[0].display_name};
+  return null;
+}
+async function mSearch(){
+  const q=$("maddr").value.trim();if(!q)return;
+  $("mmsg").textContent="Searching…";
+  try{const g=await mGeocode(q);
+    if(!g){$("mmsg").textContent="Couldn't find that address. Try adding the city and state.";return}
+    mm.setView([g.lat,g.lng],19);$("mmsg").textContent=g.name+" — tap around the area to measure.";$("maddr").blur();
+  }catch(e){$("mmsg").textContent="Search needs internet. Check your connection and try again."}
+}
+$("mgo").onclick=mSearch;$("maddr").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();mSearch()}};
+
 document.querySelector(".tabs").onclick=e=>{
   const t=e.target.dataset.tab;if(!t)return;
   document.querySelectorAll(".tabs .chip").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
-  document.body.classList.toggle("kmode",t==="K");
-  $("tabC").hidden=t!=="C";$("tabK").hidden=t!=="K";$("add").hidden=t!=="C";
-  if(t==="K")initMap();
+  document.body.classList.toggle("kmode",t==="K"||t==="M");
+  $("tabC").hidden=t!=="C";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("add").hidden=t!=="C";
+  if(t==="K")initMap();if(t==="M")mInit();
 };
 </script>
 </body>
