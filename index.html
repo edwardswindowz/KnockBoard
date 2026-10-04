@@ -126,6 +126,7 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
     <div class="row"><button id="mdone" style="flex:1">Finish area</button><button id="mundo" style="flex:1">Undo point</button><button id="mclr" style="flex:1">Clear all</button></div>
     <div id="mres"></div>
     <div class="row" style="margin-top:6px;align-items:end"><div><label>Price per sq ft ($)</label><input id="mppf" type="number" step="0.01" inputmode="decimal" placeholder="0.15"></div><div><label>Quote</label><div id="mquote" style="font-size:26px;font-weight:800;color:var(--a)">$0</div></div></div>
+    <button id="msave" class="btn pri" style="width:100%;margin-top:8px;padding:13px">Save to customer</button>
   </div>
 </div>
 <button class="btn pri fab" id="add">+ New customer</button>
@@ -142,6 +143,17 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
   <div class="row"><div><label>Job date</label><input id="f_job" type="date"></div><div><label>Follow up on</label><input id="f_fu" type="date"></div></div>
   <label>Notes</label><textarea id="f_notes"></textarea>
   <div class="row" style="margin-top:12px;justify-content:space-between"><button id="del" style="color:#ff5c5c;flex:none">Delete</button><span style="text-align:right"><button id="cancel">Cancel</button> <button class="pri" id="save">Save</button></span></div>
+</dialog>
+
+<dialog id="mdlg">
+  <h2 style="margin:0 0 4px;font-size:18px">Save measurement</h2>
+  <div class="sub" id="msum"></div>
+  <label>Customer name</label><input id="m_name" list="mnames" autocomplete="off" placeholder="Type a new name or pick an existing one">
+  <datalist id="mnames"></datalist>
+  <div class="row"><div><label>Phone (optional)</label><input id="m_phone" type="tel"></div></div>
+  <label>Address</label><input id="m_addr">
+  <div class="sub" id="mnote" style="margin:6px 0"></div>
+  <div class="row" style="margin-top:12px;justify-content:flex-end"><button id="mcancel">Cancel</button> <button class="btn pri" id="mok">Save</button></div>
 </dialog>
 
 <dialog id="odlg">
@@ -519,10 +531,40 @@ async function mSearch(){
   $("mmsg").textContent="Searching…";
   try{const g=await mGeocode(q);
     if(!g){$("mmsg").textContent="Couldn't find that address. Try adding the city and state.";return}
-    mm.setView([g.lat,g.lng],20);$("mmsg").textContent=g.name+" — tap around the area to measure.";$("maddr").blur();
+    mAddr=g.name.replace(/,\s*United States$/,"");mm.setView([g.lat,g.lng],20);$("mmsg").textContent=g.name+" — tap around the area to measure.";$("maddr").blur();
   }catch(e){$("mmsg").textContent="Search needs internet. Check your connection and try again."}
 }
 $("mgo").onclick=mSearch;$("maddr").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();mSearch()}};
+
+let mAddr="";
+function mTotals(){const tot=mAreas.reduce((a,x)=>a+x.sqft,0),cs=mCur.length>=3?mArea(mCur):0,sq=tot+cs,ppf=parseFloat($("mppf").value)||0;
+  return{sq:Math.round(sq),ppf,price:Math.round(sq*ppf),areas:mAreas.map(a=>Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
+function mNote(t){const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  return "Measured "+d+": "+(t.areas.length>1?t.areas.map((a,i)=>"Area "+(i+1)+" "+a.toLocaleString()+" sq ft").join(" + ")+" = ":"")+t.sq.toLocaleString()+" sq ft"+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")}
+$("msave").onclick=()=>{
+  const t=mTotals();if(!t.sq){$("mmsg").textContent="Outline an area first, then save it.";return}
+  $("msum").textContent=t.sq.toLocaleString()+" sq ft"+(t.ppf?" · quote "+money(t.price):"");
+  $("m_name").value="";$("m_phone").value="";$("m_addr").dataset.auto="";$("m_addr").value=mAddr||$("maddr").value.trim();
+  $("mnames").innerHTML=customers.map(r=>`<option value="${esc(r.name)}">`).join("");
+  $("mnote").textContent="";$("mdlg").showModal();
+};
+$("m_name").oninput=()=>{const v=$("m_name").value.trim().toLowerCase(),r=v&&customers.find(c=>(c.name||"").toLowerCase()===v);
+  if(r){$("mnote").textContent="Existing customer — the measurement will be added to their record.";if(!$("m_addr").value||$("m_addr").dataset.auto!=="0"){if(r.address)$("m_addr").value=r.address}if(r.phone&&!$("m_phone").value)$("m_phone").value=r.phone}
+  else $("mnote").textContent=""};
+$("m_addr").oninput=()=>{$("m_addr").dataset.auto="0"};
+$("mcancel").onclick=()=>$("mdlg").close();
+$("mok").onclick=()=>{
+  const name=$("m_name").value.trim();if(!name){$("m_name").focus();return}
+  const t=mTotals(),note=mNote(t),addr=$("m_addr").value.trim(),phone=$("m_phone").value.trim(),
+    ex=customers.find(c=>(c.name||"").toLowerCase()===name.toLowerCase());
+  if(ex){
+    const d={notes:(ex.notes?ex.notes+"\n":"")+note};
+    if(addr&&!ex.address)d.address=addr;if(phone&&!ex.phone)d.phone=phone;
+    if(t.price)d.price=t.price;if(ex.status==="Lead")d.status="Quoted";
+    mutate("upd","customers",ex.id,d);
+  }else mutate("ins","customers",newId(),{name,phone,email:"",address:addr,service:"",status:"Quoted",price:t.price,source:"Measure",job_date:null,follow_up:null,notes:note});
+  $("mdlg").close();$("mmsg").textContent="Saved to "+name+" in Customers. Tap Customers to move them to Scheduled, Done or Paid.";
+};
 
 document.querySelector(".tabs").onclick=e=>{
   const t=e.target.dataset.tab;if(!t)return;
