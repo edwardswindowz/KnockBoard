@@ -205,11 +205,18 @@ const PAY="https://buy.stripe.com/aFa8wQ2Kld9jdumcK52oE00";
 let user=null;
 async function gate(){
   if(!user)return;
-  const r=await sb.from("subscriptions").select("status").maybeSingle(),gk="kb_sub_"+user.id;
+  const gk="kb_sub_"+user.id;
+  let r=await sb.from("subscriptions").select("status").maybeSingle();
+  // a hiccup right after sign-in/confirm link is common: retry a few times while the phone has a connection
+  for(let i=0;i<3&&isNet(r)&&navigator.onLine;i++){
+    await new Promise(z=>setTimeout(z,800*(i+1)));
+    if(r.status===401){try{await sb.auth.refreshSession()}catch(e){}}
+    r=await sb.from("subscriptions").select("status").maybeSingle();
+  }
   let ok=false,msg="";
-  if(isNet(r)){ // offline: trust the last successful check for 7 days
+  if(isNet(r)){ // couldn't verify: trust the last successful check for 7 days
     const g=lsGet(gk,null);ok=!!(g&&g.ok&&Date.now()-g.t<7*864e5);
-    if(!ok)msg="You're offline. Connect to the internet once to verify your subscription.";
+    if(!ok)msg=navigator.onLine?"Couldn't check your subscription just now. Tap \"I've subscribed, refresh\" to try again.":"You're offline. Connect to the internet once to verify your subscription.";
   }else{
     ok=!!r.data&&["active","trialing"].includes(r.data.status);lsSet(gk,{ok,t:Date.now()});
     if(!ok&&r.data)msg="Your subscription isn't active. Start a new one to keep using KnockBoard.";
