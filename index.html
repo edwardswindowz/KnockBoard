@@ -20,7 +20,8 @@
 html,body{margin:0;background:var(--bg);color:var(--t);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 .wrap{max-width:720px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(90px + env(safe-area-inset-bottom,0px))}
 h1{font-size:22px;margin:0;letter-spacing:-.3px}h1 span{color:var(--a)}
-.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px}
+.bar h1{white-space:nowrap}.bar>span{display:flex;gap:5px;flex:none}.bar button{padding:7px 10px;font-size:13px;white-space:nowrap}
 input,select,textarea{width:100%;font:inherit;color:var(--t);background:#000;border:1px solid var(--b);border-radius:10px;padding:10px}
 textarea{min-height:64px}
 label{display:block;font-size:12px;color:var(--m);margin:8px 0 3px}
@@ -70,6 +71,9 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 .mvx{width:34px;height:34px;display:flex;align-items:center;justify-content:center}.mvx::after{content:"";width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid #ff6a00;box-sizing:border-box}
 #mres{max-height:30vh;overflow-y:auto}
 .marow{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}.marow span{flex:1}.marow b{color:var(--a)}
+.opt{display:block;width:100%;text-align:left;padding:13px 14px;margin:6px 0;border-radius:12px;font-size:15px}
+.opt.on{background:var(--a);border-color:var(--a);color:#000;font-weight:700}
+#calc select,#calc input{width:100%}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -97,11 +101,10 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 <div id="app" hidden>
 <div class="wrap">
   <div id="net" hidden></div>
-  <div class="bar"><h1>Knock<span>Board</span></h1><span><button id="manage">Manage plan</button> <button id="out">Log out</button></span></div>
-  <div class="tabs"><button class="chip on" data-tab="C">Customers</button><button class="chip" data-tab="K">Door knocking</button><button class="chip" data-tab="M">Measure</button></div>
+  <div class="bar"><h1>Knock<span>Board</span></h1><span><button id="biz" title="My business">⚙</button> <button id="manage">Manage plan</button> <button id="out">Log out</button></span></div>
+  <div class="tabs"><button class="chip on" data-tab="C">Customers</button><button class="chip" data-tab="K">Knocking</button><button class="chip" data-tab="M">Measure</button><button class="chip" data-tab="P">Profit</button></div>
 
   <div id="tabC">
-    <div id="rev"></div>
     <div class="stats" id="stats"></div>
     <details style="margin-bottom:8px"><summary>Text message template</summary>
       <textarea id="tpl" style="min-height:90px"></textarea>
@@ -118,6 +121,14 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
     <div id="map"></div>
     <div class="row" style="margin-top:8px"><button id="kme" style="flex:1">Find me</button><button id="ksat" style="flex:1">Street view</button></div>
     <div class="stats" id="kstats" style="margin-top:10px"></div>
+  </div>
+  <div id="tabP" hidden>
+    <div id="rev"></div>
+    <div id="jobs"></div>
+    <h3 style="margin:14px 0 2px;font-size:17px">Job profit calculator</h3>
+    <div class="sub">See what you actually keep on a job.</div>
+    <div class="chips" id="cn"></div>
+    <div id="calc"></div>
   </div>
   <div id="tabM" hidden>
     <div class="row"><input id="maddr" placeholder="Type the address (street, city, state)" style="flex:1"><button id="mgo" class="btn pri">Go</button></div>
@@ -143,6 +154,13 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
   <div class="row"><div><label>Job date</label><input id="f_job" type="date"></div><div><label>Follow up on</label><input id="f_fu" type="date"></div></div>
   <label>Notes</label><textarea id="f_notes"></textarea>
   <div class="row" style="margin-top:12px;justify-content:space-between"><button id="del" style="color:#ff5c5c;flex:none">Delete</button><span style="text-align:right"><button id="cancel">Cancel</button> <button class="pri" id="save">Save</button></span></div>
+</dialog>
+
+<dialog id="ob">
+  <h2 id="obt" style="margin:0 0 4px;font-size:19px"></h2><div class="sub" id="obs"></div>
+  <div id="obo" style="margin-top:8px"></div>
+  <div class="sub" id="obm" style="color:#ff5c5c"></div>
+  <div class="row" style="margin-top:12px;justify-content:space-between"><button id="obb">Back</button><span style="text-align:right"><button id="obx">Cancel</button> <button class="btn pri" id="obn">Next</button></span></div>
 </dialog>
 
 <dialog id="mdlg">
@@ -222,7 +240,7 @@ async function gate(){
     if(!ok&&r.data)msg="Your subscription isn't active. Start a new one to keep using KnockBoard.";
   }
   $("auth").hidden=true;$("pay").hidden=ok;$("app").hidden=!ok;
-  if(ok)loadAll();else $("paymsg").textContent=msg;
+  if(ok){loadAll();applyProf();if(!prof.done&&!$("ob").open)openOb(false)}else $("paymsg").textContent=msg;
 }
 sb.auth.onAuthStateChange((_e,s)=>{user=s?s.user:null;
   if(user)setTimeout(gate,0);
@@ -242,7 +260,7 @@ const K=n=>"kb_"+n+"_"+(user?user.id:"x");
 const saveQ=()=>lsSet(K("q"),queue),saveC=()=>lsSet(K("c"),{customers,pins});
 const isNet=r=>!!r&&!!r.error&&(!navigator.onLine||r.status===0||r.status>=500||r.status===401||/fetch|network|load failed|timeout|aborted/i.test(r.error.message||""));
 function refresh(){
-  $("svcs").innerHTML=[...new Set([...customers,...pins].map(r=>r.service).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join("");
+  $("svcs").innerHTML=[...new Set([...(typeof svcBase==="function"?svcBase():[]),...customers,...pins].map(r=>typeof r==="string"?r:r.service).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join("");
   render();drawPins();
 }
 function netUI(){
@@ -380,6 +398,11 @@ function revUI(){
   $("rev").innerHTML=`<div class="rev"><span class="lb">All-time revenue</span><div class="big">${money(r.all)}</div>
     <span class="sub">${r.n} sale${r.n===1?"":"s"} · ${r.doors} door${r.doors===1?"":"s"} knocked · ${r.close}% close rate</span></div>
     <div class="r3">${c("Today",r.day)}${c("This week",r.week)}${c("This month",r.month)}</div>`;
+  const sum=a=>a.reduce((s,x)=>s+(+x.price||0),0),paid=customers.filter(x=>x.status==="Paid"),open=customers.filter(x=>["Quoted","Scheduled","Done"].includes(x.status));
+  $("jobs").innerHTML=`<span class="lb" style="margin:4px 0">Customer jobs</span><div class="r3">
+    <div class="st"><span class="lb">Paid</span><b>${money(sum(paid))}</b><span>${paid.length} job${paid.length===1?"":"s"}</span></div>
+    <div class="st"><span class="lb">Not paid yet</span><b>${money(sum(open))}</b><span>${open.length} job${open.length===1?"":"s"}</span></div>
+    <div class="st"><span class="lb">Avg job</span><b>${money(paid.length?sum(paid)/paid.length:0)}</b><span>paid jobs</span></div></div>`;
 }
 const DEFTPL="Hi {name}, thanks for chatting today! Let me know if you have any questions.";
 const firstName=n=>(String(n||"").trim().split(/\s+/)[0])||"there";
@@ -573,12 +596,98 @@ $("mok").onclick=()=>{
   $("mdlg").close();$("mmsg").textContent="Saved to "+name+" in Customers. Tap Customers to move them to Scheduled, Done or Paid.";
 };
 
+/* ---- Business profile (niches + goals), tailored services, profit calculator ---- */
+const NICHES={
+  roofing:{l:"Roofing",svc:["Roof replacement","Roof repair","Roof inspection","Storm damage","Gutters","Roof cleaning"],costs:["Materials","Crew labor","Dumpster / disposal","Permits","Ad / lead cost","Other costs"]},
+  pest:{l:"Pest control",svc:["General pest control","Quarterly service","Termite treatment","Rodent control","Mosquito treatment","One-time treatment"],costs:["Chemicals / product","Technician labor","Vehicle / fuel","Ad / lead cost","Other costs"]},
+  solar:{l:"Solar",svc:["Residential solar install","Battery add-on","Panel cleaning","Roof-mount system","Ground-mount system","Consultation"],costs:["Equipment / panels","Install labor","Permits / interconnection","Sales commission","Ad / lead cost","Other costs"]},
+  window:{l:"Window cleaning",svc:["Exterior windows","Interior + exterior windows","Screens & tracks","Gutter cleaning","Solar panel cleaning","Commercial storefront"],costs:["Supplies / soap","Labor","Vehicle / fuel","Ad / lead cost","Other costs"]},
+  pressure:{l:"Pressure washing",svc:["House wash","Driveway cleaning","Deck / fence cleaning","Roof wash","Concrete / patio","Commercial wash"],costs:["Supplies / chemicals","Equipment / fuel","Labor","Ad / lead cost","Other costs"]},
+  other:{l:"Other",svc:["Estimate","Service call","Repeat service"],costs:["Materials / supplies","Labor","Vehicle / fuel","Ad / lead cost","Other costs"]}
+};
+const GOALS=[["jobs","Manage customers & jobs"],["knock","Door knocking & map"],["quote","Measure & quote properties"],["profit","Track revenue & profit"]];
+let prof={niches:[],goals:[],done:false},obSel=null,obStep=0,calcN=null;
+function getProf(){
+  const l=user?lsGet(K("prof"),null):null;if(l)return l;
+  const md=(user&&user.user_metadata)||{};
+  return md.onboarded?{niches:md.niches||[],goals:md.goals||[],done:true}:{niches:[],goals:[],done:false};
+}
+function svcBase(){const ns=prof.niches&&prof.niches.length?prof.niches:Object.keys(NICHES);return ns.flatMap(n=>(NICHES[n]||NICHES.other).svc)}
+function applyProf(){
+  prof=getProf();const g=prof.goals||[],all=!g.length;
+  document.querySelectorAll(".tabs .chip").forEach(b=>{const t=b.dataset.tab;
+    b.hidden=!(t==="C"||all||(t==="K"&&g.includes("knock"))||(t==="M"&&g.includes("quote"))||(t==="P"&&(g.includes("profit")||g.includes("knock"))))});
+  const cur=document.querySelector(".tabs .chip.on");if(cur&&cur.hidden)document.querySelector('.tabs .chip[data-tab="C"]').click();
+  refresh();calcInit();
+}
+function obRender(){
+  const first=obStep===0;
+  $("obt").textContent=first?"What kind of business do you run?":"What do you want to use KnockBoard for?";
+  $("obs").textContent="Pick all that apply. You can change this any time with the ⚙ button.";
+  const items=first?Object.entries(NICHES).map(([k,v])=>[k,v.l]):GOALS,sel=first?obSel.niches:obSel.goals;
+  $("obo").innerHTML=items.map(([k,l])=>`<button class="opt ${sel.includes(k)?"on":""}" data-k="${k}">${l}</button>`).join("");
+  $("obb").style.visibility=first?"hidden":"visible";$("obn").textContent=first?"Next":"Done";$("obm").textContent="";
+}
+function openOb(edit){
+  obSel={niches:[...(prof.niches||[])],goals:[...(prof.goals||[])]};obStep=0;$("obx").hidden=!edit;
+  obRender();if(!$("ob").open)$("ob").showModal();
+}
+$("ob").addEventListener("cancel",e=>{if(!prof.done)e.preventDefault()});
+$("obo").onclick=e=>{const k=e.target.dataset.k;if(!k)return;const a=obStep===0?obSel.niches:obSel.goals,i=a.indexOf(k);i>=0?a.splice(i,1):a.push(k);obRender()};
+$("obb").onclick=()=>{obStep=0;obRender()};
+$("obx").onclick=()=>$("ob").close();
+$("obn").onclick=()=>{
+  if(obStep===0){if(!obSel.niches.length){$("obm").textContent="Pick at least one (or Other).";return}obStep=1;obRender();return}
+  const p={niches:obSel.niches,goals:obSel.goals,done:true};lsSet(K("prof"),p);
+  try{Promise.resolve(sb.auth.updateUser({data:{niches:p.niches,goals:p.goals,onboarded:true}})).catch(()=>{})}catch(e){}
+  $("ob").close();applyProf();
+};
+$("biz").onclick=()=>openOb(true);
+
+const money2=n=>(n<0?"-":"")+"$"+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+function calcInit(){
+  const ns=prof.niches&&prof.niches.length?prof.niches:["other"];
+  if(!calcN||!ns.includes(calcN))calcN=ns[0];
+  $("cn").innerHTML=ns.length>1?ns.map(n=>`<button class="chip ${n===calcN?"on":""}" data-n="${n}">${NICHES[n].l}</button>`).join(""):"";
+  calcRender();
+}
+function calcRender(){
+  const N=NICHES[calcN]||NICHES.other,sv=(lsGet(K("calc"),{})[calcN])||{};
+  $("calc").innerHTML=`<div class="card">
+    <label>Job price ($)</label><input id="c_price" type="number" inputmode="decimal" value="${esc(sv.price??"")}">
+    <select id="c_cust" style="margin-top:6px"><option value="">Fill price from a customer…</option>${customers.filter(c=>+c.price>0).map(c=>`<option value="${c.id}">${esc(c.name)} — ${money(c.price)}</option>`).join("")}</select>
+    <div class="sub" style="margin-top:12px">Costs for this job</div>
+    ${N.costs.map((l,i)=>`<label>${l} ($)</label><input class="c_cost" data-i="${i}" type="number" inputmode="decimal" value="${esc((sv.costs||{})[l]??"")}">`).join("")}
+    <label>Payment fees</label><select id="c_pay"><option value="card">Card (2.9% + $0.30)</option><option value="none">Cash or check (no fee)</option><option value="custom">Custom %</option></select>
+    <input id="c_pct" type="number" inputmode="decimal" placeholder="Fee %" value="${esc(sv.pct??"")}" style="margin-top:6px">
+    <label>Hours worked (optional)</label><input id="c_hrs" type="number" inputmode="decimal" value="${esc(sv.hrs??"")}">
+  </div><div id="c_out"></div>`;
+  $("c_pay").value=sv.pay||"card";calcCompute();
+}
+function calcCompute(){
+  const v=id=>parseFloat($(id).value)||0,N=NICHES[calcN]||NICHES.other,price=v("c_price"),costs={};let cost=0;
+  document.querySelectorAll(".c_cost").forEach(e=>{cost+=parseFloat(e.value)||0;costs[N.costs[+e.dataset.i]]=e.value});
+  const pay=$("c_pay").value;$("c_pct").hidden=pay!=="custom";
+  const fee=price<=0||pay==="none"?0:pay==="card"?price*.029+.3:price*v("c_pct")/100,
+    total=cost+fee,profit=price-total,margin=price>0?profit/price*100:0,hrs=v("c_hrs"),col=profit>=0?"#2f9e44":"#e03131";
+  const all=lsGet(K("calc"),{});all[calcN]={price:$("c_price").value,costs,pay,pct:$("c_pct").value,hrs:$("c_hrs").value};lsSet(K("calc"),all);
+  $("c_out").innerHTML=`<div class="stats">
+    <div class="st"><span class="lb">Gross revenue</span><b>${money2(price)}</b></div>
+    <div class="st"><span class="lb">Total costs</span><b>${money2(total)}</b><span>incl. ${money2(fee)} fees</span></div>
+    <div class="st"><span class="lb">Profit</span><b style="color:${col}">${money2(profit)}</b>${hrs>0?`<span>${money2(profit/hrs)} per hour</span>`:""}</div>
+    <div class="st"><span class="lb">Profit margin</span><b style="color:${col}">${margin.toFixed(1)}%</b></div></div>`;
+}
+$("calc").addEventListener("input",e=>{
+  if(e.target.id==="c_cust"){const c=customers.find(x=>x.id===e.target.value);if(c)$("c_price").value=c.price}
+  calcCompute()});
+$("cn").onclick=e=>{const n=e.target.dataset.n;if(!n)return;calcN=n;calcInit()};
+
 document.querySelector(".tabs").onclick=e=>{
   const t=e.target.dataset.tab;if(!t)return;
   document.querySelectorAll(".tabs .chip").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   document.body.classList.toggle("kmode",t==="K"||t==="M");
-  $("tabC").hidden=t!=="C";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("add").hidden=t!=="C";
-  if(t==="K")initMap();if(t==="M")mInit();
+  $("tabC").hidden=t!=="C";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("tabP").hidden=t!=="P";$("add").hidden=t!=="C";
+  if(t==="K")initMap();if(t==="M")mInit();if(t==="P")calcInit();
 };
 </script>
 </body>
