@@ -30,7 +30,7 @@ button,.btn{font:inherit;font-size:14px;color:var(--t);background:var(--c);borde
 .row{display:flex;gap:8px}.row>div{flex:1}
 .chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0}
 .chip{flex:none;border-radius:99px;padding:6px 13px;font-size:13px}.chip.on{background:var(--a);border-color:var(--a);color:#000;font-weight:700}
-.tabs{display:flex;gap:6px;margin-bottom:10px}.tabs .chip{flex:1;text-align:center;padding:9px}
+.tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.tabs::-webkit-scrollbar{display:none}.tabs .chip{flex:none;text-align:center;padding:9px 15px}
 .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
 .st{background:var(--c);border:1px solid var(--b);border-radius:12px;padding:10px 12px}
 .st b{display:block;font-size:20px}.st span{color:var(--m);font-size:12px}
@@ -71,6 +71,15 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 .mvx{width:34px;height:34px;display:flex;align-items:center;justify-content:center}.mvx::after{content:"";width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid #ff6a00;box-sizing:border-box}
 #mres{max-height:30vh;overflow-y:auto}
 .marow{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}.marow span{flex:1}.marow b{color:var(--a)}
+.calh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.calh b{font-size:16px}.calh button{padding:4px 12px;font-size:18px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.cal .wd{text-align:center;font-size:11px;color:var(--m);padding:3px 0}
+.cd{aspect-ratio:1;padding:0;border-radius:10px;position:relative;font-size:14px;background:transparent;border:1px solid transparent}
+.cd.today{border-color:var(--a)}.cd.sel{background:var(--a);color:#000;font-weight:700}
+.cd .dot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:var(--a)}
+.cd.sel .dot{background:#000}.cd .dot.done{background:#2f9e44}
+.next{border-color:var(--a)}.next b{color:var(--a)}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 6px}.sec h3{margin:0;font-size:16px}
+.mini{padding:6px 11px;font-size:13px}
 .opt{display:block;width:100%;text-align:left;padding:13px 14px;margin:6px 0;border-radius:12px;font-size:15px}
 .opt.on{background:var(--a);border-color:var(--a);color:#000;font-weight:700}
 #calc select,#calc input{width:100%}
@@ -102,18 +111,37 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 <div class="wrap">
   <div id="net" hidden></div>
   <div class="bar"><h1>Knock<span>Board</span></h1><span><button id="biz" title="My business">⚙</button> <button id="manage">Manage plan</button> <button id="out">Log out</button></span></div>
-  <div class="tabs"><button class="chip on" data-tab="C">Customers</button><button class="chip" data-tab="K">Knocking</button><button class="chip" data-tab="M">Measure</button><button class="chip" data-tab="P">Profit</button></div>
+  <div class="tabs"><button class="chip on" data-tab="H">Home</button><button class="chip" data-tab="C">Customers</button><button class="chip" data-tab="Q">Quick add</button><button class="chip" data-tab="K">Knocking</button><button class="chip" data-tab="M">Measure</button><button class="chip" data-tab="P">Profit</button></div>
 
-  <div id="tabC">
+  <div id="tabH">
+    <div class="card next" id="hnext"></div>
+    <div class="r3" id="hstats"></div>
+    <div class="card" id="hcal"></div>
+    <div id="hday"></div>
+    <div id="hattn"></div>
+  </div>
+
+  <div id="tabC" hidden>
     <div class="stats" id="stats"></div>
-    <details style="margin-bottom:8px"><summary>Text message template</summary>
+    <details id="tplbox" style="margin-bottom:8px"><summary>Text message template</summary>
       <textarea id="tpl" style="min-height:90px"></textarea>
-      <div class="sub">{name} becomes each customer's first name. Saved on this phone.</div></details>
+      <div class="sub">{name} becomes each customer's first name. Saved on this phone.</div>
+      <label>Your Google review link (for the “Ask for review” button)</label><input id="revlink" placeholder="https://g.page/r/..."></details>
     <input id="q" placeholder="Search name, phone, address">
     <div class="chips" id="chips"></div>
     <div class="sendrow"><button id="selall">Select all</button><button id="grp">Group text</button><button id="one">One by one</button></div>
     <div class="sub" style="margin-bottom:10px">Group text puts everyone in one thread (no names). One by one opens a separate message for each customer; you tap Send in Messages for each.</div>
     <div id="list"></div>
+  </div>
+
+  <div id="tabQ" hidden>
+    <div class="sub">Add someone in a few seconds. Fill in the rest later.</div>
+    <label>Name</label><input id="qa_name" autocomplete="off">
+    <label>Phone</label><input id="qa_phone" type="tel" inputmode="tel">
+    <label>Address (optional)</label><input id="qa_addr" autocomplete="off">
+    <button class="btn pri" id="qa_save" style="width:100%;margin-top:12px;padding:13px">Add customer</button>
+    <div class="sub" id="qa_msg" style="margin-top:6px"></div>
+    <div class="sec"><h3>Recently added</h3></div><div id="qa_list"></div>
   </div>
 
   <div id="tabK" hidden>
@@ -311,7 +339,7 @@ async function pull(){
 async function loadAll(){
   if(qUser!==user.id){
     qUser=user.id;queue=lsGet(K("q"),[]);dropped=0;
-    $("tpl").value=lsGet(K("tpl"),DEFTPL);
+    $("tpl").value=lsGet(K("tpl"),DEFTPL);$("revlink").value=lsGet(K("revlink"),"");
     const c=lsGet(K("c"),null);if(c){customers=c.customers||[];pins=c.pins||[];refresh()}
   }
   netUI();await flush();await pull();
@@ -332,7 +360,7 @@ if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWor
 
 /* ---------- Customers ---------- */
 function render(){
-  revUI();
+  revUI();if(typeof homeUI==="function"){homeUI();qaList()}
   const q=$("q").value.toLowerCase().trim(),open=customers.filter(r=>["Lead","Quoted"].includes(r.status)),
     due=customers.filter(r=>r.follow_up&&r.follow_up<=today()&&!["Paid","Done"].includes(r.status));
   $("stats").innerHTML=
@@ -347,16 +375,16 @@ function render(){
   for(const id of [...sel])if(!customers.some(c=>c.id===id))sel.delete(id);
   updSel();
   $("list").innerHTML=list.length?list.map(r=>{
-    const ph=(r.phone||"").replace(/[^\d+]/g,""),late=r.follow_up&&r.follow_up<=today()&&!["Paid","Done"].includes(r.status),next=ST[ST.indexOf(r.status)+1];
+    const ph=(r.phone||"").replace(/[^\d+]/g,""),late=r.follow_up&&r.follow_up<=today(),next=ST[ST.indexOf(r.status)+1];
     return `<div class="card"><div class="top"><div style="display:flex;gap:10px;min-width:0">${ph?`<input type="checkbox" data-sel="${r.id}" ${sel.has(r.id)?"checked":""}>`:""}<div><div class="nm">${esc(r.name)}</div>
       <div class="sub">${esc(r.service)}${r.price?" · "+money(r.price):""}</div>
       ${r.address?`<div class="sub">${esc(r.address)}</div>`:""}
       ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}</div>`:""}
-      ${r.follow_up?`<div class="sub ${late?"due":""}">Follow up: ${esc(r.follow_up)}</div>`:""}
+      ${r.follow_up?`<div class="sub ${late?"due":""}">${["Paid","Done"].includes(r.status)?"Rebook reminder":"Follow up"}: ${esc(r.follow_up)}</div>`:""}
       ${r.notes?`<div class="sub">${esc(r.notes)}</div>`:""}</div></div><span class="badge">${esc(r.status)}</span></div>
       <div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>`:""}
       ${r.address?`<a class="btn" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}
-      ${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button data-edit="${r.id}">Edit</button></div></div>`}).join("")
+      <button data-share="${r.id}">Share</button>${r.status==="Paid"&&ph?`<button data-rv="${r.id}">Ask for review</button>`:""}${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button data-edit="${r.id}">Edit</button></div></div>`}).join("")
     :`<div class="empty">No customers yet. Tap “+ New customer” or log a sale on the map.</div>`;
 }
 function openForm(r){
@@ -371,6 +399,7 @@ $("save").onclick=()=>{
   const name=$("f_name").value.trim();if(!name){$("f_name").focus();return}
   const d={name,phone:$("f_phone").value.trim(),email:$("f_email").value.trim(),address:$("f_addr").value.trim(),service:$("f_svc").value.trim(),
     status:$("f_status").value,price:+$("f_price").value||0,source:$("f_src").value.trim(),job_date:$("f_job").value||null,follow_up:$("f_fu").value||null,notes:$("f_notes").value.trim()};
+  if(["Done","Paid"].includes(d.status)&&d.job_date&&!d.follow_up)d.follow_up=rebookDate(d.job_date,d.service);
   if(editId)mutate("upd","customers",editId,d);else mutate("ins","customers",newId(),d);
   $("dlg").close();
 };
@@ -381,7 +410,9 @@ $("list").onclick=e=>{
   if(e.target.dataset.sel){const id=e.target.dataset.sel;e.target.checked?sel.add(id):sel.delete(id);updSel();return}
   const ed=e.target.dataset.edit,adv=e.target.dataset.adv;
   if(ed)openForm(customers.find(r=>r.id===ed));
-  if(adv){const r=customers.find(r=>r.id===adv);if(r)mutate("upd","customers",adv,{status:ST[ST.indexOf(r.status)+1]})}
+  if(adv){const r=customers.find(r=>r.id===adv);if(r){const ns=ST[ST.indexOf(r.status)+1],u={status:ns};if(["Done","Paid"].includes(ns)&&r.job_date&&!r.follow_up)u.follow_up=rebookDate(r.job_date,r.service);mutate("upd","customers",adv,u)}}
+  if(e.target.dataset.rv)askReview(e.target.dataset.rv);
+  if(e.target.dataset.share)shareJob(e.target.dataset.share);
 };
 
 /* ---------- Revenue + texting ---------- */
@@ -616,8 +647,8 @@ function svcBase(){const ns=prof.niches&&prof.niches.length?prof.niches:Object.k
 function applyProf(){
   prof=getProf();const g=prof.goals||[],all=!g.length;
   document.querySelectorAll(".tabs .chip").forEach(b=>{const t=b.dataset.tab;
-    b.hidden=!(t==="C"||all||(t==="K"&&g.includes("knock"))||(t==="M"&&g.includes("quote"))||(t==="P"&&(g.includes("profit")||g.includes("knock"))))});
-  const cur=document.querySelector(".tabs .chip.on");if(cur&&cur.hidden)document.querySelector('.tabs .chip[data-tab="C"]').click();
+    b.hidden=!(t==="H"||t==="C"||t==="Q"||all||(t==="K"&&g.includes("knock"))||(t==="M"&&g.includes("quote"))||(t==="P"&&(g.includes("profit")||g.includes("knock"))))});
+  const cur=document.querySelector(".tabs .chip.on");if(cur&&cur.hidden)document.querySelector('.tabs .chip[data-tab="H"]').click();
   refresh();calcInit();
 }
 function obRender(){
@@ -682,11 +713,107 @@ $("calc").addEventListener("input",e=>{
   calcCompute()});
 $("cn").onclick=e=>{const n=e.target.dataset.n;if(!n)return;calcN=n;calcInit()};
 
+/* ---- Home (calendar + what needs attention), Quick add, rebook reminders ---- */
+const REBOOK={roofing:12,pest:3,solar:6,window:6,pressure:12,other:12},VERB={roofing:"Worked on",pest:"Treated",solar:"Serviced",window:"Cleaned",pressure:"Cleaned",other:"Completed"};
+const pad2=n=>String(n).padStart(2,"0"),ymd=d=>d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());
+const parseD=k=>{const[a,b,c]=k.split("-").map(Number);return new Date(a,b-1,c)};
+function nicheOf(svc){const t=(svc||"").trim().toLowerCase();for(const n in NICHES)if(NICHES[n].svc.some(x=>x.toLowerCase()===t))return n;return(prof.niches&&prof.niches[0])||"other"}
+function rebookMonths(svc){const t=(svc||"").toLowerCase();if(/mosquito/.test(t))return 1;if(/quarter/.test(t))return 3;if(/gutter|window/.test(t))return 6;return REBOOK[nicheOf(svc)]||12}
+function rebookDate(jobDate,svc){const d=parseD(jobDate);d.setMonth(d.getMonth()+rebookMonths(svc));return ymd(d)}
+function agoText(k){const days=Math.round((parseD(today())-parseD(k))/864e5);if(days<45)return days<=13?"recently":Math.round(days/7)+" weeks ago";const m=Math.round(days/30.4);return m>=24?Math.round(m/12)+" years ago":m+" months ago"}
+let calM=new Date(new Date().getFullYear(),new Date().getMonth(),1),calSel=today();
+const phoneOfC=r=>(r.phone||"").replace(/[^\d+]/g,"");
+const longDay=k=>parseD(k).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
+const jobCard=(r,extra)=>{const ph=phoneOfC(r);return `<div class="card"><div class="top"><div><div class="nm">${esc(r.name)}</div>
+  <div class="sub">${esc(r.service||"")}${r.price?(r.service?" · ":"")+money(r.price):""}</div>${r.address?`<div class="sub">${esc(r.address)}</div>`:""}${extra||""}</div><span class="badge">${esc(r.status)}</span></div>
+  <div class="acts">${ph?`<a class="btn mini" href="tel:${ph}">Call</a><a class="btn mini" href="sms:${ph}">Text</a>`:""}${r.address?`<a class="btn mini" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}<button class="mini" data-share="${r.id}">Share</button><button class="mini" data-edit="${r.id}">Edit</button></div></div>`};
+function homeUI(){
+  if(!$("tabH"))return;
+  const T=today(),sum=a=>a.reduce((s,x)=>s+(+x.price||0),0),sched=customers.filter(c=>c.status==="Scheduled"&&c.job_date&&c.job_date>=T);
+  // next booked day
+  const nd=sched.map(c=>c.job_date).sort()[0];
+  if(nd){const js=sched.filter(c=>c.job_date===nd);$("hnext").innerHTML=`<span class="lb">Next booked day</span><div style="font-size:18px;margin-top:4px"><b>${longDay(nd)}</b>${nd===T?" (today)":""}</div><div class="sub">${money(sum(js))} booked · ${js.length} job${js.length===1?"":"s"}</div>`}
+  else $("hnext").innerHTML=`<span class="lb">Nothing booked yet</span><div class="sub" style="margin-top:4px">Add a job date to a customer and set them to Scheduled. They'll show up here.</div>`;
+  // stats
+  const w0=new Date();w0.setDate(w0.getDate()-w0.getDay());const w1=new Date(w0);w1.setDate(w1.getDate()+6);
+  const wk=sched.filter(c=>c.job_date>=ymd(w0)&&c.job_date<=ymd(w1)),qs=customers.filter(c=>c.status==="Quoted"),
+    qdue=qs.filter(c=>c.follow_up&&c.follow_up<=T),rb=customers.filter(c=>["Done","Paid"].includes(c.status)&&c.follow_up&&c.follow_up<=T);
+  $("hstats").innerHTML=`<div class="st"><span class="lb">This week</span><b>${money(sum(wk))}</b><span>${wk.length} job${wk.length===1?"":"s"}</span></div>
+    <div class="st"><span class="lb">Quotes waiting</span><b>${money(sum(qs))}</b><span>${qs.length} quote${qs.length===1?"":"s"}${qdue.length?` · ${qdue.length} due`:""}</span></div>
+    <div class="st"><span class="lb">Rebook</span><b>${rb.length}</b><span>reminder${rb.length===1?"":"s"}</span></div>`;
+  // calendar
+  const y=calM.getFullYear(),m=calM.getMonth(),dim=new Date(y,m+1,0).getDate(),start=new Date(y,m,1).getDay(),by={};
+  customers.forEach(c=>{if(c.job_date)(by[c.job_date]=by[c.job_date]||[]).push(c)});
+  let cells=["S","M","T","W","T","F","S"].map(x=>`<span class="wd">${x}</span>`).join("")+"<span></span>".repeat(start);
+  for(let d=1;d<=dim;d++){const k=y+"-"+pad2(m+1)+"-"+pad2(d),js=by[k]||[];
+    cells+=`<button class="cd ${k===T?"today":""} ${k===calSel?"sel":""}" data-d="${k}">${d}${js.length?`<i class="dot ${js.some(c=>c.status==="Scheduled")?"":"done"}"></i>`:""}</button>`}
+  $("hcal").innerHTML=`<div class="calh"><button data-m="-1">‹</button><b>${calM.toLocaleDateString("en-US",{month:"long",year:"numeric"})}</b><button data-m="1">›</button></div><div class="cal">${cells}</div>`;
+  // selected day
+  const dj=by[calSel]||[];
+  $("hday").innerHTML=`<div class="sec"><h3>${longDay(calSel)}</h3><span class="sub">${dj.length?dj.length+" job"+(dj.length===1?"":"s")+" · "+money(sum(dj)):"Nothing scheduled"}</span></div>`
+    +dj.map(r=>jobCard(r)).join("")+`<button class="mini" data-addday="${calSel}" style="margin-top:2px">+ Add a job on this day</button>`;
+  // attention
+  let h="";
+  const qshow=[...qs].sort((a,b)=>(a.follow_up||"9999").localeCompare(b.follow_up||"9999")).slice(0,5);
+  if(qshow.length){h+=`<div class="sec"><h3>Quotes to follow up</h3><span class="sub">${qs.length} · ${money(sum(qs))}</span></div>`+qshow.map(r=>{
+    const ph=phoneOfC(r),due=r.follow_up&&r.follow_up<=T,body=`Hi ${firstName(r.name)}, just following up on the quote${r.service?" for "+r.service:""}${r.price?" ("+money(r.price)+")":""}. Any questions? Happy to get you on the schedule.`;
+    return `<div class="card"><div class="top"><div><div class="nm">${esc(r.name)}</div><div class="sub">${esc(r.service||"")}${r.price?(r.service?" · ":"")+money(r.price):""}</div>${r.follow_up?`<div class="sub ${due?"due":""}">Follow up: ${esc(r.follow_up)}</div>`:""}</div></div>
+      <div class="acts">${ph?`<a class="btn mini" href="tel:${ph}">Call</a><a class="btn mini" href="${smsHref([ph],body)}">Text follow-up</a>`:""}<button class="mini" data-edit="${r.id}">Edit</button></div></div>`}).join("")}
+  const rshow=[...rb].sort((a,b)=>a.follow_up.localeCompare(b.follow_up)).slice(0,5);
+  if(rshow.length){h+=`<div class="sec"><h3>Time to rebook</h3><span class="sub">${rb.length} past customer${rb.length===1?"":"s"}</span></div>`+rshow.map(r=>{
+    const ph=phoneOfC(r),n=nicheOf(r.service),svc=(r.service||"your service").toLowerCase(),ago=r.job_date?agoText(r.job_date):"a while ago",
+      body=`Hi ${firstName(r.name)}, it's been ${ago.replace(" ago","")} since we did your ${svc}. Want me to get you back on the schedule?`;
+    return `<div class="card"><div class="top"><div><div class="nm">${esc(r.name)}</div><div class="sub">${VERB[n]||"Completed"}: ${esc(r.service||"job")} · ${ago}</div></div><span class="badge">${esc(r.status)}</span></div>
+      <div class="acts">${ph?`<a class="btn mini" href="${smsHref([ph],body)}">Text to rebook</a><a class="btn mini" href="tel:${ph}">Call</a>`:""}<button class="mini" data-snooze="${r.id}">Remind me later</button><button class="mini" data-dismiss="${r.id}">Dismiss</button></div></div>`}).join("")}
+  $("hattn").innerHTML=h;
+}
+$("tabH").onclick=e=>{const t=e.target,d=t.dataset;
+  if(d.d){calSel=d.d;homeUI()}
+  else if(d.m){calM=new Date(calM.getFullYear(),calM.getMonth()+ +d.m,1);homeUI()}
+  else if(d.share)shareJob(d.share);
+  else if(d.edit)openForm(customers.find(r=>r.id===d.edit));
+  else if(d.addday)openForm({job_date:d.addday,status:"Scheduled"});
+  else if(d.dismiss)mutate("upd","customers",d.dismiss,{follow_up:null});
+  else if(d.snooze){const x=new Date();x.setMonth(x.getMonth()+1);mutate("upd","customers",d.snooze,{follow_up:ymd(x)})}};
+async function shareJob(id){
+  const r=customers.find(c=>c.id===id);if(!r)return;
+  const L=[];L.push((r.service?r.service+" — ":"")+r.name);
+  if(r.phone)L.push("Phone: "+r.phone);
+  if(r.address)L.push("Address: "+r.address);
+  if(r.job_date)L.push("Date: "+longDay(r.job_date));
+  if(r.notes)L.push("Notes: "+r.notes);
+  if(r.address)L.push("Directions: https://maps.apple.com/?daddr="+encodeURIComponent(r.address));
+  const text=L.join("\n");
+  try{
+    if(navigator.share){await navigator.share({text});return}
+    await navigator.clipboard.writeText(text);alert("Job details copied. Paste them into a text.");
+  }catch(e){if(e&&e.name==="AbortError")return;try{await navigator.clipboard.writeText(text);alert("Job details copied. Paste them into a text.")}catch(x){prompt("Copy these job details:",text)}}
+}
+function askReview(id){
+  const r=customers.find(c=>c.id===id);if(!r)return;const link=($("revlink").value||"").trim(),ph=phoneOfC(r);
+  if(!link){$("tplbox").open=true;$("revlink").focus();alert("Paste your Google review link in the box below first. You only do this once.");return}
+  location.href=smsHref([ph],`Thanks again, ${firstName(r.name)}! If you were happy with the work, would you leave us a quick review? ${link}`)}
+$("revlink").oninput=()=>lsSet(K("revlink"),$("revlink").value.trim());
+function qaList(){
+  const el=$("qa_list");if(!el)return;
+  const rec=[...customers].sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8);
+  el.innerHTML=rec.length?rec.map(r=>`<div class="card"><div class="top"><div><div class="nm">${esc(r.name)}</div><div class="sub">${esc(r.phone||"No phone")}${r.address?" · "+esc(r.address):""}</div></div><button class="mini" data-edit="${r.id}">Edit</button></div></div>`).join(""):`<div class="empty">Nobody yet.</div>`;
+}
+$("qa_list").onclick=e=>{if(e.target.dataset.edit)openForm(customers.find(r=>r.id===e.target.dataset.edit))};
+$("qa_save").onclick=()=>{
+  const name=$("qa_name").value.trim(),phone=$("qa_phone").value.trim(),address=$("qa_addr").value.trim();
+  if(!name){$("qa_name").focus();return}
+  const dig=phone.replace(/\D/g,""),dup=dig&&customers.find(c=>(c.phone||"").replace(/\D/g,"")===dig);
+  if(dup&&!confirm(dup.name+" already has this number. Add anyway?"))return;
+  mutate("ins","customers",newId(),{name,phone,email:"",address,service:"",status:"Lead",price:0,source:"Quick add",job_date:null,follow_up:null,notes:""});
+  $("qa_name").value="";$("qa_phone").value="";$("qa_addr").value="";$("qa_msg").textContent="Added "+name+".";$("qa_name").focus();
+};
+
 document.querySelector(".tabs").onclick=e=>{
   const t=e.target.dataset.tab;if(!t)return;
   document.querySelectorAll(".tabs .chip").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   document.body.classList.toggle("kmode",t==="K"||t==="M");
-  $("tabC").hidden=t!=="C";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("tabP").hidden=t!=="P";$("add").hidden=t!=="C";
+  $("tabH").hidden=t!=="H";$("tabC").hidden=t!=="C";$("tabQ").hidden=t!=="Q";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("tabP").hidden=t!=="P";$("add").hidden=!(t==="C"||t==="H");
   if(t==="K")initMap();if(t==="M")mInit();if(t==="P")calcInit();
 };
 </script>
