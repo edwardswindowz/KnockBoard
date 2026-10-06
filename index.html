@@ -99,7 +99,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--a);box-s
 dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px #000}
 .fabs{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;z-index:25}
 .fabs .btn{padding:13px 18px;box-shadow:0 6px 22px #000c;border-radius:99px;font-size:15px}
-.row>div{min-width:0}input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:42px}
+.na{float:right;font-size:12px;color:var(--m);text-transform:none;letter-spacing:0}.na input{width:auto;min-height:0;margin:0 3px 0 0;vertical-align:middle}.row>div{min-width:0}input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:42px}
 .opt small{font-weight:400;opacity:.75;font-size:12px}
 .cb{position:relative;display:block}.cb input{padding-right:38px}
 .cbt{position:absolute;right:3px;top:3px;bottom:3px;width:34px;padding:0;border:none;background:transparent;color:var(--m);font-size:15px}
@@ -204,7 +204,8 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <label>Address</label><input id="f_addr">
   <div class="row"><div><label>Service</label><input id="f_svc" list="svcs"></div><div><label>Status</label><select id="f_status"></select></div></div>
   <div class="row"><div><label>Price ($)</label><input id="f_price" type="number" inputmode="decimal"></div><div><label>Source</label><input id="f_src" placeholder="Door knock, referral…"></div></div>
-  <div class="row"><div><label>Job date</label><input id="f_job" type="date"></div><div><label>Follow up on</label><input id="f_fu" type="date"></div></div>
+  <div class="row"><div><label>Job date <span class="na"><input type="checkbox" id="f_jobna"> N/A</span></label><input id="f_job" type="date"></div><div><label>Job time <span class="na"><input type="checkbox" id="f_timena"> N/A</span></label><input id="f_time" type="time"></div></div>
+  <div class="row"><div><label>Follow up on</label><input id="f_fu" type="date"></div></div>
   <label>Notes</label><textarea id="f_notes"></textarea><div class="nchips" id="f_chips"></div>
   <div class="row" style="margin-top:12px;justify-content:space-between"><button id="del" style="color:#ff5c5c;flex:none">Delete</button><span style="text-align:right"><button id="cancel">Cancel</button> <button class="pri" id="save">Save</button></span></div>
 </dialog>
@@ -427,18 +428,24 @@ function render(){
     return `<div class="card"><div class="top"><div style="display:flex;gap:10px;min-width:0">${ph?`<input type="checkbox" data-sel="${r.id}" ${sel.has(r.id)?"checked":""}>`:""}<div><div class="nm">${esc(r.name)}</div>
       <div class="sub">${esc(r.service)}${r.price?" · "+money(r.price):""}</div>
       ${r.address?`<div class="sub">${esc(r.address)}</div>`:""}
-      ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}</div>`:""}
+      ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}${splitNote(r.notes).time?" · "+fmtT(splitNote(r.notes).time):""}</div>`:""}
       ${r.follow_up?`<div class="sub ${late?"due":""}">${["Paid","Done"].includes(r.status)?"Rebook reminder":"Follow up"}: ${esc(r.follow_up)}</div>`:""}
-      ${r.notes?`<div class="sub">${esc(r.notes)}</div>`:""}</div></div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
+      ${splitNote(r.notes).rest?`<div class="sub">${esc(splitNote(r.notes).rest)}</div>`:""}</div></div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
       <div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>`:""}
       ${r.address?`<a class="btn g" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}
       <button class="g" data-share="${r.id}">Share</button>${r.status==="Paid"&&ph?`<button data-rv="${r.id}">Ask for review</button>`:""}${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button class="g" data-edit="${r.id}">Edit</button></div></div>`}).join("")
     :`<div class="empty">No customers yet. Tap “+ New customer” or log a sale on the map.</div>`;
 }
+function splitNote(n){n=n||"";const m=n.match(/^Time:\s*(\d{1,2}:\d{2})\s*\n?/);return m?{time:m[1].padStart(5,"0"),rest:n.slice(m[0].length)}:{time:"",rest:n}}
+function fmtT(t){if(!t)return"";const[h,m]=t.split(":").map(Number);return(h%12||12)+":"+String(m).padStart(2,"0")+(h<12?" AM":" PM")}
+function naSync(){["job","time"].forEach(k=>{const c=$("f_"+k+"na"),i=$("f_"+k);if(c.checked)i.value="";i.disabled=c.checked;i.style.opacity=c.checked?.4:1})}
+["job","time"].forEach(k=>$("f_"+k+"na").onchange=naSync);
 function openForm(r){
   editId=r?r.id:null;r=r||{};$("dt").textContent=r.id?"Edit customer":"New customer";
   const m={f_name:"name",f_phone:"phone",f_email:"email",f_addr:"address",f_svc:"service",f_price:"price",f_src:"source",f_job:"job_date",f_fu:"follow_up",f_notes:"notes"};
   for(const k in m)$(k).value=r[m[k]]||"";
+  const sn=splitNote(r.notes);$("f_notes").value=sn.rest;$("f_time").value=sn.time;
+  $("f_jobna").checked=!!r.id&&!r.job_date;$("f_timena").checked=!!r.id&&!sn.time;naSync();
   $("f_status").value=r.status||"Lead";$("del").style.display=r.id?"":"none";noteChips();$("dlg").showModal();
 }
 $("add").onclick=()=>openForm();
@@ -446,7 +453,7 @@ $("cancel").onclick=()=>$("dlg").close();
 $("save").onclick=()=>{
   const name=$("f_name").value.trim();if(!name){$("f_name").focus();return}
   const d={name,phone:$("f_phone").value.trim(),email:$("f_email").value.trim(),address:$("f_addr").value.trim(),service:$("f_svc").value.trim(),
-    status:$("f_status").value,price:+$("f_price").value||0,source:$("f_src").value.trim(),job_date:$("f_job").value||null,follow_up:$("f_fu").value||null,notes:$("f_notes").value.trim()};
+    status:$("f_status").value,price:+$("f_price").value||0,source:$("f_src").value.trim(),job_date:$("f_job").value||null,follow_up:$("f_fu").value||null,notes:($("f_time").value&&!$("f_timena").checked?"Time: "+$("f_time").value+($("f_notes").value.trim()?"\n":""):"")+$("f_notes").value.trim()};
   if(["Done","Paid"].includes(d.status)&&d.job_date&&!d.follow_up)d.follow_up=rebookDate(d.job_date,d.service);
   if(editId)mutate("upd","customers",editId,d);else mutate("ins","customers",newId(),d);
   $("dlg").close();
@@ -839,8 +846,8 @@ async function shareJob(id){
   const L=[];L.push((r.service?r.service+" — ":"")+r.name);
   if(r.phone)L.push("Phone: "+r.phone);
   if(r.address)L.push("Address: "+r.address);
-  if(r.job_date)L.push("Date: "+longDay(r.job_date));
-  if(r.notes)L.push("Notes: "+r.notes);
+  if(r.job_date)L.push("Date: "+longDay(r.job_date)+(splitNote(r.notes).time?" at "+fmtT(splitNote(r.notes).time):""));
+  if(splitNote(r.notes).rest)L.push("Notes: "+splitNote(r.notes).rest);
   if(r.address)L.push("Directions: https://maps.apple.com/?daddr="+encodeURIComponent(r.address));
   const text=L.join("\n");
   try{
