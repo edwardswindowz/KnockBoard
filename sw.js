@@ -1,4 +1,4 @@
-const V="kb-shell-v1",T="kb-tiles-v1",MAX_TILES=400;
+const V="kb-shell-v2",T="kb-tiles-v1",MAX_TILES=400;
 const SHELL=["./","index.html","manifest.webmanifest","icon-192.png","icon-512.png",
 "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css","https://unpkg.com/leaflet@1.9.4/dist/leaflet.js","https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"];
 self.addEventListener("install",e=>{e.waitUntil((async()=>{const c=await caches.open(V);await Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})));self.skipWaiting()})())});

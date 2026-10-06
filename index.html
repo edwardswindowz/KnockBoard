@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* Change --a to your logo color */
-:root{--a:#ff6a00;--bg:#000;--c:#0d0d0d;--b:#262626;--t:#f2f2f2;--m:#8d8d8d;box-sizing:border-box}
+:root{--a:#2b7fff;--bg:#000;--c:#0d0d0d;--b:#262626;--t:#f2f2f2;--m:#8d8d8d;box-sizing:border-box}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--t);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 .wrap{max-width:720px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(90px + env(safe-area-inset-bottom,0px))}
@@ -26,10 +26,10 @@ input,select,textarea{width:100%;font:inherit;color:var(--t);background:#000;bor
 textarea{min-height:64px}
 label{display:block;font-size:12px;color:var(--m);margin:8px 0 3px}
 button,.btn{font:inherit;font-size:14px;color:var(--t);background:var(--c);border:1px solid var(--b);border-radius:10px;padding:8px 13px;text-decoration:none;display:inline-block}
-.pri{background:var(--a);border-color:var(--a);color:#000;font-weight:700}
+.pri{background:var(--a);border-color:var(--a);color:#fff;font-weight:700}
 .row{display:flex;gap:8px}.row>div{flex:1}
 .chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0}
-.chip{flex:none;border-radius:99px;padding:6px 13px;font-size:13px}.chip.on{background:var(--a);border-color:var(--a);color:#000;font-weight:700}
+.chip{flex:none;border-radius:99px;padding:6px 13px;font-size:13px}.chip.on{background:var(--a);border-color:var(--a);color:#fff;font-weight:700}
 .tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.tabs::-webkit-scrollbar{display:none}.tabs .chip{flex:none;text-align:center;padding:9px 15px}
 .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
 .st{background:var(--c);border:1px solid var(--b);border-radius:12px;padding:10px 12px}
@@ -68,21 +68,46 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 .kmode #tabM{flex:1;min-height:0;display:flex;flex-direction:column}
 #mmap{height:46vh;border-radius:12px;border:1px solid var(--b,#2a2a2a);margin:8px 0}
 .kmode #mmap{flex:1;height:auto;min-height:120px}
-.mvx{width:34px;height:34px;display:flex;align-items:center;justify-content:center}.mvx::after{content:"";width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid #ff6a00;box-sizing:border-box}
+.mvx{width:34px;height:34px;display:flex;align-items:center;justify-content:center}.mvx::after{content:"";width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid #2b7fff;box-sizing:border-box}
 #mres{max-height:30vh;overflow-y:auto}
 .marow{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}.marow span{flex:1}.marow b{color:var(--a)}
 .calh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.calh b{font-size:16px}.calh button{padding:4px 12px;font-size:18px}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.cal .wd{text-align:center;font-size:11px;color:var(--m);padding:3px 0}
 .cd{aspect-ratio:1;padding:0;border-radius:10px;position:relative;font-size:14px;background:transparent;border:1px solid transparent}
-.cd.today{border-color:var(--a)}.cd.sel{background:var(--a);color:#000;font-weight:700}
+.cd.today{border-color:var(--a)}.cd.sel{background:var(--a);color:#fff;font-weight:700}
 .cd .dot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:var(--a)}
-.cd.sel .dot{background:#000}.cd .dot.done{background:#2f9e44}
+.cd.sel .dot{background:#fff}.cd .dot.done{background:#2f9e44}
 .next{border-color:var(--a)}.next b{color:var(--a)}
 .sec{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 6px}.sec h3{margin:0;font-size:16px}
 .mini{padding:6px 11px;font-size:13px}
 .opt{display:block;width:100%;text-align:left;padding:13px 14px;margin:6px 0;border-radius:12px;font-size:15px}
-.opt.on{background:var(--a);border-color:var(--a);color:#000;font-weight:700}
+.opt.on{background:var(--a);border-color:var(--a);color:#fff;font-weight:700}
 #calc select,#calc input{width:100%}
+/* ---- polish ---- */
+:root{--b:#232323;--c:#101010}
+.hd{position:sticky;top:0;z-index:30;margin:calc(-12px - env(safe-area-inset-top,0px)) -14px 10px;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 6px;background:rgba(0,0,0,.88);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.hd .bar{margin-bottom:8px}.hd .tabs{margin-bottom:2px}
+button,.btn{transition:transform .08s,background .15s,border-color .15s}button:active,.btn:active{transform:scale(.97)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--a);box-shadow:0 0 0 3px #2b7fff40}
+.card{border-radius:16px;padding:14px;margin-bottom:10px;background:var(--c)}
+.st{border-radius:14px}
+.tabs .chip{background:#111;border-color:#1c1c1c;color:#bbb}.tabs .chip.on{background:var(--a);border-color:var(--a);color:#fff}
+.badge{font-weight:600}
+.s-Lead{border-color:#666;color:#aaa}.s-Quoted{border-color:#1c7ed6;color:#5aaeff}.s-Scheduled{border-color:var(--a);color:var(--a)}.s-Done{border-color:#2f9e44;color:#6fdc87}.s-Paid{background:#2f9e44;border-color:#2f9e44;color:#00130a}
+.acts{gap:6px}.acts button,.acts .btn{padding:7px 12px;font-size:13px}
+.acts .g{background:transparent;border-color:transparent;color:var(--m)}
+dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px #000}
+.fabs{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;z-index:25}
+.fabs .btn{padding:13px 18px;box-shadow:0 6px 22px #000c;border-radius:99px;font-size:15px}
+.row>div{min-width:0}input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:42px}
+.opt small{font-weight:400;opacity:.75;font-size:12px}
+.cb{position:relative;display:block}.cb input{padding-right:38px}
+.cbt{position:absolute;right:3px;top:3px;bottom:3px;width:34px;padding:0;border:none;background:transparent;color:var(--m);font-size:15px}
+.cbp{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:60;max-height:210px;overflow-y:auto;background:#161616;border:1px solid #333;border-radius:12px;padding:4px;box-shadow:0 12px 30px #000}
+.cbo{display:block;width:100%;text-align:left;border:none;background:transparent;padding:10px 12px;border-radius:8px;font-size:15px}.cbo:active{background:#262626}
+.nchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.nchips button{padding:5px 11px;font-size:12px;border-radius:99px;color:var(--m)}
+.pc{display:block;width:100%;text-align:left;padding:15px 16px;margin:8px 0;border-radius:14px;font-size:16px;font-weight:700}.pc small{display:block;font-weight:400;font-size:12px;opacity:.8;margin-top:2px}
+.qmode .fullrow{display:none}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -110,8 +135,8 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 <div id="app" hidden>
 <div class="wrap">
   <div id="net" hidden></div>
-  <div class="bar"><h1>Knock<span>Board</span></h1><span><button id="biz" title="My business">⚙</button> <button id="manage">Manage plan</button> <button id="out">Log out</button></span></div>
-  <div class="tabs"><button class="chip on" data-tab="H">Home</button><button class="chip" data-tab="C">Customers</button><button class="chip" data-tab="Q">Quick add</button><button class="chip" data-tab="K">Knocking</button><button class="chip" data-tab="M">Measure</button><button class="chip" data-tab="P">Profit</button></div>
+  <div class="hd"><div class="bar"><h1>Knock<span>Board</span></h1><span><button id="biz" title="Settings" aria-label="Settings">⚙</button></span></div>
+  <div class="tabs"><button class="chip on" data-tab="H">Home</button><button class="chip" data-tab="C">Customers</button><button class="chip" data-tab="Q">Quick add</button><button class="chip" data-tab="K">Knocking</button><button class="chip" data-tab="M">Measure</button><button class="chip" data-tab="P">Profit</button></div></div>
 
   <div id="tabH">
     <div class="card next" id="hnext"></div>
@@ -168,7 +193,7 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
     <button id="msave" class="btn pri" style="width:100%;margin-top:8px;padding:13px">Save to customer</button>
   </div>
 </div>
-<button class="btn pri fab" id="add">+ New customer</button>
+<div class="fabs" id="fabs"><button class="btn" id="addq">⚡ Quick</button><button class="btn pri" id="add">+ New customer</button></div>
 
 <datalist id="svcs"></datalist>
 
@@ -180,8 +205,25 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
   <div class="row"><div><label>Service</label><input id="f_svc" list="svcs"></div><div><label>Status</label><select id="f_status"></select></div></div>
   <div class="row"><div><label>Price ($)</label><input id="f_price" type="number" inputmode="decimal"></div><div><label>Source</label><input id="f_src" placeholder="Door knock, referral…"></div></div>
   <div class="row"><div><label>Job date</label><input id="f_job" type="date"></div><div><label>Follow up on</label><input id="f_fu" type="date"></div></div>
-  <label>Notes</label><textarea id="f_notes"></textarea>
+  <label>Notes</label><textarea id="f_notes"></textarea><div class="nchips" id="f_chips"></div>
   <div class="row" style="margin-top:12px;justify-content:space-between"><button id="del" style="color:#ff5c5c;flex:none">Delete</button><span style="text-align:right"><button id="cancel">Cancel</button> <button class="pri" id="save">Save</button></span></div>
+</dialog>
+
+<dialog id="sdlg">
+  <h2 style="margin:0 0 2px;font-size:19px">Settings</h2>
+  <div class="sub" id="semail" style="margin-bottom:10px"></div>
+  <button class="opt" id="editbiz">My business &amp; goals<br><small>Change your trade and what you use KnockBoard for</small></button>
+  <button class="opt" id="manage">Manage plan<br><small>Billing, payment method, cancel</small></button>
+  <button class="opt" id="out" style="color:#ff6b6b">Log out</button>
+  <div class="row" style="margin-top:8px;justify-content:flex-end"><button id="sclose">Close</button></div>
+</dialog>
+
+<dialog id="qdlg">
+  <h2 style="margin:0 0 4px;font-size:19px">⚡ Quick customer</h2>
+  <label>Name</label><input id="qd_name" autocomplete="off">
+  <label>Phone</label><input id="qd_phone" type="tel" inputmode="tel">
+  <label>Address (optional)</label><input id="qd_addr" autocomplete="off">
+  <div class="row" style="margin-top:12px;justify-content:flex-end"><button id="qd_cancel">Cancel</button> <button class="btn pri" id="qd_save">Save</button></div>
 </dialog>
 
 <dialog id="ob">
@@ -214,10 +256,16 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 <dialog id="pdlg">
   <h2 id="pt" style="margin:0 0 4px;font-size:18px">New house</h2>
   <div class="kbs"><button class="kb" data-r="Sold" style="background:#2f9e44">Sold</button><button class="kb" data-r="Quoted" style="background:#1c7ed6">Quoted/Waiting</button><button class="kb" data-r="Not home" style="background:#f08c00">Not home</button><button class="kb" data-r="No" style="background:#e03131">No</button></div>
+  <div id="pchoice" hidden>
+    <div class="sub" style="margin:4px 0 6px">Nice, a sale! How do you want to save this customer?</div>
+    <button class="pc btn pri" id="pc_quick">⚡ Quick customer<small>Just name, phone and address</small></button>
+    <button class="pc btn" id="pc_full">Full customer<small>Price, service and job date too</small></button>
+    <button id="pc_skip" style="width:100%">Just mark it sold</button>
+  </div>
   <div id="pform" hidden>
-    <label>Name</label><input id="p_name"><label>Phone</label><input id="p_phone" type="tel">
-    <div class="row"><div><label>Price ($)</label><input id="p_price" type="number" inputmode="decimal"></div><div><label>Service</label><input id="p_svc" list="svcs"></div></div>
-    <div class="row"><div><label id="p_dl">Date</label><input id="p_date" type="date"></div><div><label>Time</label><input id="p_time" type="time"></div></div>
+    <label>Name</label><input id="p_name"><label>Phone</label><input id="p_phone" type="tel"><label>Address (optional)</label><input id="p_addr">
+    <div class="row fullrow"><div><label>Price ($)</label><input id="p_price" type="number" inputmode="decimal"></div><div><label>Service</label><input id="p_svc" list="svcs"></div></div>
+    <div class="row fullrow"><div><label id="p_dl">Date</label><input id="p_date" type="date"></div><div><label>Time</label><input id="p_time" type="time"></div></div>
     <button class="pri" id="p_save" style="width:100%;margin-top:10px">Save sale</button>
   </div>
   <div class="row" style="justify-content:space-between;margin-top:12px"><button id="prem" style="color:#ff5c5c;flex:none">Remove pin</button><button id="pclose" style="flex:none">Close</button></div>
@@ -381,17 +429,17 @@ function render(){
       ${r.address?`<div class="sub">${esc(r.address)}</div>`:""}
       ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}</div>`:""}
       ${r.follow_up?`<div class="sub ${late?"due":""}">${["Paid","Done"].includes(r.status)?"Rebook reminder":"Follow up"}: ${esc(r.follow_up)}</div>`:""}
-      ${r.notes?`<div class="sub">${esc(r.notes)}</div>`:""}</div></div><span class="badge">${esc(r.status)}</span></div>
+      ${r.notes?`<div class="sub">${esc(r.notes)}</div>`:""}</div></div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
       <div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>`:""}
-      ${r.address?`<a class="btn" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}
-      <button data-share="${r.id}">Share</button>${r.status==="Paid"&&ph?`<button data-rv="${r.id}">Ask for review</button>`:""}${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button data-edit="${r.id}">Edit</button></div></div>`}).join("")
+      ${r.address?`<a class="btn g" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}
+      <button class="g" data-share="${r.id}">Share</button>${r.status==="Paid"&&ph?`<button data-rv="${r.id}">Ask for review</button>`:""}${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button class="g" data-edit="${r.id}">Edit</button></div></div>`}).join("")
     :`<div class="empty">No customers yet. Tap “+ New customer” or log a sale on the map.</div>`;
 }
 function openForm(r){
   editId=r?r.id:null;r=r||{};$("dt").textContent=r.id?"Edit customer":"New customer";
   const m={f_name:"name",f_phone:"phone",f_email:"email",f_addr:"address",f_svc:"service",f_price:"price",f_src:"source",f_job:"job_date",f_fu:"follow_up",f_notes:"notes"};
   for(const k in m)$(k).value=r[m[k]]||"";
-  $("f_status").value=r.status||"Lead";$("del").style.display=r.id?"":"none";$("dlg").showModal();
+  $("f_status").value=r.status||"Lead";$("del").style.display=r.id?"":"none";noteChips();$("dlg").showModal();
 }
 $("add").onclick=()=>openForm();
 $("cancel").onclick=()=>$("dlg").close();
@@ -483,7 +531,7 @@ function initMap(){
   map.on("click",e=>openPin({lat:e.latlng.lat,lng:e.latlng.lng}));
   if(navigator.geolocation)navigator.geolocation.watchPosition(p=>{
     const ll=[p.coords.latitude,p.coords.longitude];
-    if(!meMark){meMark=L.circleMarker(ll,{radius:8,color:"#ff6a00",weight:4,fillColor:"#fff",fillOpacity:1}).addTo(map);map.setView(ll,18)}else meMark.setLatLng(ll)},
+    if(!meMark){meMark=L.circleMarker(ll,{radius:8,color:"#2b7fff",weight:4,fillColor:"#fff",fillOpacity:1}).addTo(map);map.setView(ll,18)}else meMark.setLatLng(ll)},
     ()=>$("kmsg").textContent="Allow location for this site to see your white dot.",{enableHighAccuracy:true,maximumAge:2000});
   drawPins();
 }
@@ -503,24 +551,36 @@ function openPin(p){
   $("pt").textContent=p.id?"Update this house":"New house";
   $("p_name").value=p.name||"";$("p_phone").value=p.phone||"";$("p_price").value=p.price||"";$("p_svc").value=p.service||"";
   $("p_date").value=d?d.toLocaleDateString("en-CA"):"";$("p_time").value=d?d.toTimeString().slice(0,5):"";
-  $("pform").hidden=!["Sold","Quoted"].includes(p.result);setF(p.result);$("prem").hidden=!p.id;$("pdlg").showModal();
+  $("pform").hidden=!["Sold","Quoted"].includes(p.result);$("pform").classList.remove("qmode");$("pchoice").hidden=true;document.querySelector("#pdlg .kbs").hidden=false;$("p_addr").value="";setF(p.result);$("prem").hidden=!p.id;$("pdlg").showModal();
 }
-function savePin({dt,tm,...o}){
+function savePin({dt,tm,addr,...o}){
   const row={lat:cur.lat,lng:cur.lng,...o};
   if(cur.id)mutate("upd","pins",cur.id,row);else mutate("ins","pins",newId(),row);
   if((o.result==="Sold"||o.result==="Quoted")&&o.name){
     const q=o.result==="Quoted",ex=customers.find(c=>c.name===o.name&&(c.phone||"")===(o.phone||"")),
-      d={name:o.name,phone:o.phone,service:o.service,status:q?"Quoted":"Scheduled",price:o.price||0,source:"Door knock",job_date:q?null:(dt||null),follow_up:q?(dt||null):null,notes:tm?"Time: "+tm:null};
+      d={name:o.name,phone:o.phone,address:addr||"",service:o.service,status:q?"Quoted":"Scheduled",price:o.price||0,source:"Door knock",job_date:q?null:(dt||null),follow_up:q?(dt||null):null,notes:tm?"Time: "+tm:null};
     if(!ex)mutate("ins","customers",newId(),d);
     else if(!q&&["Lead","Quoted"].includes(ex.status))mutate("upd","customers",ex.id,{status:"Scheduled",price:d.price,job_date:d.job_date,service:d.service});
   }
   $("pdlg").close();
 }
 document.querySelectorAll("#pdlg .kb").forEach(b=>b.onclick=()=>{
-  const r=b.dataset.r;if(r==="Sold"||r==="Quoted"){cur={...cur,result:r};$("pform").hidden=false;setF(r)}else savePin({result:r})});
-$("p_save").onclick=()=>{const d=$("p_date").value,t=$("p_time").value;
-  savePin({result:cur.result,name:$("p_name").value.trim(),phone:$("p_phone").value.trim(),price:+$("p_price").value||0,service:$("p_svc").value.trim(),
-    visit_at:d?new Date(d+"T"+(t||"09:00")).toISOString():null,dt:d,tm:t})};
+  const r=b.dataset.r;
+  if(r==="Sold"&&!cur.id){cur={...cur,result:"Sold"};document.querySelector("#pdlg .kbs").hidden=true;$("pchoice").hidden=false;revGeo()}
+  else if(r==="Sold"||r==="Quoted"){cur={...cur,result:r};$("pform").hidden=false;setF(r)}else savePin({result:r})});
+$("pc_quick").onclick=()=>{$("pchoice").hidden=true;$("pform").classList.add("qmode");$("pform").hidden=false;$("p_save").textContent="Save customer";$("p_name").focus()};
+$("pc_full").onclick=()=>{$("pchoice").hidden=true;$("pform").classList.remove("qmode");$("pform").hidden=false;setF("Sold")};
+$("pc_skip").onclick=()=>savePin({result:"Sold"});
+async function revGeo(){
+  try{if(!MAPBOX_TOKEN.startsWith("pk.")||!cur||cur.lat==null)return;
+    const r=await fetch("https://api.mapbox.com/geocoding/v5/mapbox.places/"+cur.lng+","+cur.lat+".json?types=address&limit=1&access_token="+MAPBOX_TOKEN);
+    if(!r.ok)return;const j=await r.json(),f=j.features&&j.features[0];
+    if(f&&!$("p_addr").value)$("p_addr").value=f.place_name.replace(/,\s*United States$/,"");
+  }catch(e){}
+}
+$("p_save").onclick=()=>{const qm=$("pform").classList.contains("qmode");if(qm&&!$("p_name").value.trim()){$("p_name").focus();return}const d=qm?"":$("p_date").value,t=qm?"":$("p_time").value;
+  savePin({result:cur.result,name:$("p_name").value.trim(),phone:$("p_phone").value.trim(),price:qm?0:(+$("p_price").value||0),service:qm?"":$("p_svc").value.trim(),
+    visit_at:d?new Date(d+"T"+(t||"09:00")).toISOString():null,dt:d,tm:t,addr:$("p_addr").value.trim()})};
 $("prem").onclick=()=>{if(cur.id){mutate("del","pins",cur.id);$("pdlg").close()}};
 $("pclose").onclick=()=>$("pdlg").close();
 
@@ -549,7 +609,7 @@ function mAddMk(ll){
 }
 function mRedraw(skipMk){
   if(mCurLine){mm.removeLayer(mCurLine);mCurLine=null}
-  if(mCur.length>1)mCurLine=(mCur.length>2?L.polygon:L.polyline)(mCur,{color:"#ff6a00",weight:3,fillOpacity:.25}).addTo(mm);
+  if(mCur.length>1)mCurLine=(mCur.length>2?L.polygon:L.polyline)(mCur,{color:"#2b7fff",weight:3,fillOpacity:.25}).addTo(mm);
   mList();
 }
 function mList(){
@@ -673,7 +733,6 @@ $("obn").onclick=()=>{
   try{Promise.resolve(sb.auth.updateUser({data:{niches:p.niches,goals:p.goals,onboarded:true}})).catch(()=>{})}catch(e){}
   $("ob").close();applyProf();
 };
-$("biz").onclick=()=>openOb(true);
 
 const money2=n=>(n<0?"-":"")+"$"+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 function calcInit(){
@@ -725,7 +784,7 @@ let calM=new Date(new Date().getFullYear(),new Date().getMonth(),1),calSel=today
 const phoneOfC=r=>(r.phone||"").replace(/[^\d+]/g,"");
 const longDay=k=>parseD(k).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
 const jobCard=(r,extra)=>{const ph=phoneOfC(r);return `<div class="card"><div class="top"><div><div class="nm">${esc(r.name)}</div>
-  <div class="sub">${esc(r.service||"")}${r.price?(r.service?" · ":"")+money(r.price):""}</div>${r.address?`<div class="sub">${esc(r.address)}</div>`:""}${extra||""}</div><span class="badge">${esc(r.status)}</span></div>
+  <div class="sub">${esc(r.service||"")}${r.price?(r.service?" · ":"")+money(r.price):""}</div>${r.address?`<div class="sub">${esc(r.address)}</div>`:""}${extra||""}</div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
   <div class="acts">${ph?`<a class="btn mini" href="tel:${ph}">Call</a><a class="btn mini" href="sms:${ph}">Text</a>`:""}${r.address?`<a class="btn mini" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}<button class="mini" data-share="${r.id}">Share</button><button class="mini" data-edit="${r.id}">Edit</button></div></div>`};
 function homeUI(){
   if(!$("tabH"))return;
@@ -763,7 +822,7 @@ function homeUI(){
   if(rshow.length){h+=`<div class="sec"><h3>Time to rebook</h3><span class="sub">${rb.length} past customer${rb.length===1?"":"s"}</span></div>`+rshow.map(r=>{
     const ph=phoneOfC(r),n=nicheOf(r.service),svc=(r.service||"your service").toLowerCase(),ago=r.job_date?agoText(r.job_date):"a while ago",
       body=`Hi ${firstName(r.name)}, it's been ${ago.replace(" ago","")} since we did your ${svc}. Want me to get you back on the schedule?`;
-    return `<div class="card"><div class="top"><div><div class="nm">${esc(r.name)}</div><div class="sub">${VERB[n]||"Completed"}: ${esc(r.service||"job")} · ${ago}</div></div><span class="badge">${esc(r.status)}</span></div>
+    return `<div class="card"><div class="top"><div><div class="nm">${esc(r.name)}</div><div class="sub">${VERB[n]||"Completed"}: ${esc(r.service||"job")} · ${ago}</div></div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
       <div class="acts">${ph?`<a class="btn mini" href="${smsHref([ph],body)}">Text to rebook</a><a class="btn mini" href="tel:${ph}">Call</a>`:""}<button class="mini" data-snooze="${r.id}">Remind me later</button><button class="mini" data-dismiss="${r.id}">Dismiss</button></div></div>`}).join("")}
   $("hattn").innerHTML=h;
 }
@@ -801,19 +860,65 @@ function qaList(){
 }
 $("qa_list").onclick=e=>{if(e.target.dataset.edit)openForm(customers.find(r=>r.id===e.target.dataset.edit))};
 $("qa_save").onclick=()=>{
-  const name=$("qa_name").value.trim(),phone=$("qa_phone").value.trim(),address=$("qa_addr").value.trim();
-  if(!name){$("qa_name").focus();return}
-  const dig=phone.replace(/\D/g,""),dup=dig&&customers.find(c=>(c.phone||"").replace(/\D/g,"")===dig);
-  if(dup&&!confirm(dup.name+" already has this number. Add anyway?"))return;
-  mutate("ins","customers",newId(),{name,phone,email:"",address,service:"",status:"Lead",price:0,source:"Quick add",job_date:null,follow_up:null,notes:""});
+  const name=$("qa_name").value.trim();if(!name){$("qa_name").focus();return}
+  if(!quickAdd(name,$("qa_phone").value,$("qa_addr").value))return;
   $("qa_name").value="";$("qa_phone").value="";$("qa_addr").value="";$("qa_msg").textContent="Added "+name+".";$("qa_name").focus();
 };
+
+/* ---- Dropdowns that still allow typing, tailored to the user's trade ---- */
+const SRC_BASE=["Door knock","Referral","Repeat customer","Google","Facebook","Nextdoor","Yard sign","Flyer / door hanger","Website"];
+const SRC_EXTRA={roofing:["Insurance / storm lead","Contractor referral"],pest:["Neighbor of a customer","Real estate agent"],solar:["Online lead","Utility / program lead"],window:["Property manager","Realtor"],pressure:["HOA / property manager","Realtor"],other:[]};
+const NOTE_BASE=["Call before arriving","Gate / access code:","Dog on property","Prefers text","Cash / check"];
+const NOTE_EXTRA={roofing:["2-story","Steep roof","Insurance claim"],pest:["Pets in home","Kids in home","Interior + exterior"],solar:["South-facing roof","Panel upgrade needed"],window:["Remove screens","2-story","Hard-water stains"],pressure:["Water & power on site","Oil stains","Seal after washing"],other:[]};
+const myNiches=()=>prof.niches&&prof.niches.length?prof.niches:["other"];
+const srcOpts=()=>[...new Set([...SRC_BASE.slice(0,3),...myNiches().flatMap(n=>SRC_EXTRA[n]||[]),...SRC_BASE.slice(3),...customers.map(c=>c.source).filter(Boolean)])];
+const svcOpts=()=>[...new Set([...svcBase(),...customers.map(c=>c.service),...pins.map(p=>p.service)].filter(Boolean))];
+const noteOpts=()=>[...new Set([...myNiches().flatMap(n=>NOTE_EXTRA[n]||[]),...NOTE_BASE])];
+const priceOpts=svcId=>()=>{const sv=($(svcId).value||"").trim().toLowerCase();
+  const a=[...new Set(customers.filter(c=>+c.price>0&&(!sv||(c.service||"").toLowerCase()===sv)).map(c=>String(+c.price)))].slice(0,10);
+  return a.length?a:["100","150","200","300","500","750","1000"]};
+function combo(id,getOpts){
+  const inp=$(id),w=document.createElement("span");w.className="cb";inp.parentNode.insertBefore(w,inp);w.appendChild(inp);inp.removeAttribute("list");
+  const t=document.createElement("button");t.type="button";t.className="cbt";t.textContent="▾";t.tabIndex=-1;t.setAttribute("aria-label","Show choices");
+  const pn=document.createElement("div");pn.className="cbp";pn.hidden=true;w.append(t,pn);
+  const show=filter=>{const q=(filter?String(inp.value):"").trim().toLowerCase();let o=getOpts().filter(x=>!q||String(x).toLowerCase().includes(q));
+    if(o.length===1&&String(o[0]).toLowerCase()===q)o=[];
+    pn.innerHTML=o.slice(0,40).map(x=>`<button type="button" class="cbo" data-v="${esc(x)}">${esc(x)}</button>`).join("");pn.hidden=!o.length};
+  t.onmousedown=e=>e.preventDefault();
+  t.onclick=()=>{if(pn.hidden){document.querySelectorAll(".cbp").forEach(x=>x.hidden=true);show(false)}else pn.hidden=true};
+  inp.addEventListener("input",()=>show(true));inp.addEventListener("focus",()=>show(true));
+  pn.onmousedown=e=>e.preventDefault();
+  pn.onclick=e=>{const v=e.target.dataset.v;if(v==null)return;inp.value=v;pn.hidden=true;inp.dispatchEvent(new Event("input",{bubbles:true}));pn.hidden=true};
+}
+document.addEventListener("pointerdown",e=>{if(!e.target.closest(".cb"))document.querySelectorAll(".cbp").forEach(x=>x.hidden=true)});
+combo("f_svc",svcOpts);combo("f_src",srcOpts);combo("f_price",priceOpts("f_svc"));
+combo("p_svc",svcOpts);combo("p_price",priceOpts("p_svc"));
+function noteChips(){$("f_chips").innerHTML=noteOpts().map(x=>`<button type="button" data-n="${esc(x)}">${esc(x)}</button>`).join("")}
+$("f_chips").onclick=e=>{const n=e.target.dataset.n;if(!n)return;const ta=$("f_notes");ta.value=(ta.value.trim()?ta.value.replace(/[\s;]*$/,"")+"; ":"")+n}
+
+/* ---- Quick customer (shared by the button, dialog and Quick add tab) ---- */
+function quickAdd(name,phone,address){
+  name=(name||"").trim();if(!name)return false;phone=(phone||"").trim();
+  const dig=phone.replace(/\D/g,""),dup=dig&&customers.find(c=>(c.phone||"").replace(/\D/g,"")===dig);
+  if(dup&&!confirm(dup.name+" already has this number. Add anyway?"))return false;
+  mutate("ins","customers",newId(),{name,phone,email:"",address:(address||"").trim(),service:"",status:"Lead",price:0,source:"Quick add",job_date:null,follow_up:null,notes:""});
+  return true;
+}
+$("addq").onclick=()=>{$("qd_name").value="";$("qd_phone").value="";$("qd_addr").value="";$("qdlg").showModal()};
+$("qd_cancel").onclick=()=>$("qdlg").close();
+$("qd_save").onclick=()=>{if(!$("qd_name").value.trim()){$("qd_name").focus();return}
+  if(quickAdd($("qd_name").value,$("qd_phone").value,$("qd_addr").value))$("qdlg").close()};
+/* ---- Settings ---- */
+$("biz").onclick=()=>{$("semail").textContent=user?user.email:"";$("sdlg").showModal()};
+$("sclose").onclick=()=>$("sdlg").close();
+$("editbiz").onclick=()=>{$("sdlg").close();openOb(true)};
+$("out").addEventListener("click",()=>$("sdlg").close());
 
 document.querySelector(".tabs").onclick=e=>{
   const t=e.target.dataset.tab;if(!t)return;
   document.querySelectorAll(".tabs .chip").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   document.body.classList.toggle("kmode",t==="K"||t==="M");
-  $("tabH").hidden=t!=="H";$("tabC").hidden=t!=="C";$("tabQ").hidden=t!=="Q";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("tabP").hidden=t!=="P";$("add").hidden=!(t==="C"||t==="H");
+  $("tabH").hidden=t!=="H";$("tabC").hidden=t!=="C";$("tabQ").hidden=t!=="Q";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("tabP").hidden=t!=="P";$("fabs").hidden=!(t==="C"||t==="H");
   if(t==="K")initMap();if(t==="M")mInit();if(t==="P")calcInit();
 };
 </script>
