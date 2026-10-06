@@ -99,7 +99,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--a);box-s
 dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px #000}
 .fabs{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;z-index:25}
 .fabs .btn{padding:13px 18px;box-shadow:0 6px 22px #000c;border-radius:99px;font-size:15px}
-.tm{color:var(--a);font-weight:700;font-size:13px;margin-bottom:2px}.na{float:right;font-size:12px;color:var(--m);text-transform:none;letter-spacing:0}.na input{width:auto;min-height:0;margin:0 3px 0 0;vertical-align:middle}.row>div{min-width:0}input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:42px}
+.tm{color:var(--a);font-weight:800;font-size:22px;line-height:1.1;margin-bottom:3px}.nxj{display:flex;align-items:center;gap:10px;margin-top:10px;background:#111;border:1px solid var(--b);border-radius:12px;padding:10px 12px}.nxj .tt{font-size:26px;font-weight:800;color:var(--a);white-space:nowrap}.nxj .nn{flex:1;min-width:0}.nxj .nn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nxj button{flex:none;width:40px;height:40px;padding:0;font-size:22px;line-height:1}.na{float:right;font-size:12px;color:var(--m);text-transform:none;letter-spacing:0}.na input{width:auto;min-height:0;margin:0 3px 0 0;vertical-align:middle}.row>div{min-width:0}input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:42px}
 .opt small{font-weight:400;opacity:.75;font-size:12px}
 .cb{position:relative;display:block}.cb input{padding-right:38px}
 .cbt{position:absolute;right:3px;top:3px;bottom:3px;width:34px;padding:0;border:none;background:transparent;color:var(--m);font-size:15px}
@@ -136,7 +136,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
 <div class="wrap">
   <div id="net" hidden></div>
   <div class="hd"><div class="bar"><h1>Knock<span>Board</span></h1><span><button id="biz" title="Settings" aria-label="Settings">⚙</button></span></div>
-  <div class="tabs"><button class="chip on" data-tab="H">Home</button><button class="chip" data-tab="C">Customers</button><button class="chip" data-tab="Q">Quick add</button><button class="chip" data-tab="K">Knocking</button><button class="chip" data-tab="M">Measure</button><button class="chip" data-tab="P">Profit</button></div></div>
+  <div class="tabs"><button class="chip on" data-tab="H">Home</button><button class="chip" data-tab="C">Customers</button><button class="chip" data-tab="K">Knocking</button><button class="chip" data-tab="M">Measure</button><button class="chip" data-tab="P">Profit</button></div></div>
 
   <div id="tabH">
     <div class="card next" id="hnext"></div>
@@ -714,7 +714,7 @@ function svcBase(){const ns=prof.niches&&prof.niches.length?prof.niches:Object.k
 function applyProf(){
   prof=getProf();const g=prof.goals||[],all=!g.length;
   document.querySelectorAll(".tabs .chip").forEach(b=>{const t=b.dataset.tab;
-    b.hidden=!(t==="H"||t==="C"||t==="Q"||all||(t==="K"&&g.includes("knock"))||(t==="M"&&g.includes("quote"))||(t==="P"&&(g.includes("profit")||g.includes("knock"))))});
+    b.hidden=!(t==="H"||t==="C"||all||(t==="K"&&g.includes("knock"))||(t==="M"&&g.includes("quote"))||(t==="P"&&(g.includes("profit")||g.includes("knock"))))});
   const cur=document.querySelector(".tabs .chip.on");if(cur&&cur.hidden)document.querySelector('.tabs .chip[data-tab="H"]').click();
   refresh();calcInit();
 }
@@ -790,16 +790,19 @@ function agoText(k){const days=Math.round((parseD(today())-parseD(k))/864e5);if(
 let calM=new Date(new Date().getFullYear(),new Date().getMonth(),1),calSel=today();
 const phoneOfC=r=>(r.phone||"").replace(/[^\d+]/g,"");
 const longDay=k=>parseD(k).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
-const jobCard=(r,extra)=>{const ph=phoneOfC(r),tm=splitNote(r.notes).time;return `<div class="card"><div class="top"><div>${tm?`<div class="tm">🕐 ${fmtT(tm)}</div>`:""}<div class="nm">${esc(r.name)}</div>
+const jobCard=(r,extra)=>{const ph=phoneOfC(r),tm=splitNote(r.notes).time;return `<div class="card"><div class="top"><div>${tm?`<div class="tm">${fmtT(tm)}</div>`:""}<div class="nm">${esc(r.name)}</div>
   <div class="sub">${esc(r.service||"")}${r.price?(r.service?" · ":"")+money(r.price):""}</div>${r.address?`<div class="sub">${esc(r.address)}</div>`:""}${extra||""}</div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
   <div class="acts">${ph?`<a class="btn mini" href="tel:${ph}">Call</a><a class="btn mini" href="sms:${ph}">Text</a>`:""}${r.address?`<a class="btn mini" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}<button class="mini" data-share="${r.id}">Share</button><button class="mini" data-edit="${r.id}">Edit</button></div></div>`};
 const byTime=(a,b)=>(splitNote(a.notes).time||"99:99").localeCompare(splitNote(b.notes).time||"99:99");
+let nxD="",nxI=0,nxN=1;
 function homeUI(){
   if(!$("tabH"))return;
   const T=today(),sum=a=>a.reduce((s,x)=>s+(+x.price||0),0),sched=customers.filter(c=>c.status==="Scheduled"&&c.job_date&&c.job_date>=T);
   // next booked day
   const nd=sched.map(c=>c.job_date).sort()[0];
-  if(nd){const js=sched.filter(c=>c.job_date===nd);$("hnext").innerHTML=`<span class="lb">Next booked day</span><div style="font-size:18px;margin-top:4px"><b>${longDay(nd)}</b>${nd===T?" (today)":""}</div><div class="sub">${money(sum(js))} booked · ${js.length} job${js.length===1?"":"s"}</div>${[...js].sort(byTime).map(c=>`<div class="sub" style="margin-top:3px">${splitNote(c.notes).time?`<b class="tm">${fmtT(splitNote(c.notes).time)}</b> · `:""}${esc(c.name)}</div>`).join("")}`}
+  if(nd){const js=sched.filter(c=>c.job_date===nd).sort(byTime);if(nxD!==nd){nxD=nd;nxI=0}nxN=js.length;if(nxI>=nxN)nxI=0;const c=js[nxI],tm=splitNote(c.notes).time;
+    $("hnext").innerHTML=`<span class="lb">Next booked day</span><div style="font-size:18px;margin-top:4px"><b>${longDay(nd)}</b>${nd===T?" (today)":""}${tm?` <span class="tm" style="font-size:20px;margin-left:6px">${fmtT(tm)}</span>`:""}</div><div class="sub">${money(sum(js))} booked · ${js.length} job${js.length===1?"":"s"}</div>
+    <div class="nxj">${js.length>1?`<button data-nx="-1">‹</button>`:""}<div class="nn"><div class="tt">${tm?fmtT(tm):"No time"}</div><b>${esc(c.name)}</b><span class="sub">${esc(c.service||"")}${c.price?(c.service?" · ":"")+money(c.price):""}</span></div>${js.length>1?`<span class="sub" style="flex:none">${nxI+1}/${js.length}</span><button data-nx="1">›</button>`:""}</div>`}
   else $("hnext").innerHTML=`<span class="lb">Nothing booked yet</span><div class="sub" style="margin-top:4px">Add a job date to a customer and set them to Scheduled. They'll show up here.</div>`;
   // stats
   const w0=new Date();w0.setDate(w0.getDate()-w0.getDay());const w1=new Date(w0);w1.setDate(w1.getDate()+6);
@@ -835,7 +838,8 @@ function homeUI(){
   $("hattn").innerHTML=h;
 }
 $("tabH").onclick=e=>{const t=e.target,d=t.dataset;
-  if(d.d){calSel=d.d;homeUI()}
+  if(d.nx){nxI=(nxI+ +d.nx+nxN)%nxN;homeUI()}
+  else if(d.d){calSel=d.d;homeUI()}
   else if(d.m){calM=new Date(calM.getFullYear(),calM.getMonth()+ +d.m,1);homeUI()}
   else if(d.share)shareJob(d.share);
   else if(d.edit)openForm(customers.find(r=>r.id===d.edit));
