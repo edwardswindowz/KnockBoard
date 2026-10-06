@@ -99,7 +99,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--a);box-s
 dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px #000}
 .fabs{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;z-index:25}
 .fabs .btn{padding:13px 18px;box-shadow:0 6px 22px #000c;border-radius:99px;font-size:15px}
-.tm{color:var(--a);font-weight:800;font-size:22px;line-height:1.1;margin-bottom:3px}.nxj{display:flex;align-items:center;gap:10px;margin-top:10px;background:#111;border:1px solid var(--b);border-radius:12px;padding:10px 12px}.nxj .tt{font-size:26px;font-weight:800;color:var(--a);white-space:nowrap}.nxj .nn{flex:1;min-width:0}.nxj .nn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nxj button{flex:none;width:40px;height:40px;padding:0;font-size:22px;line-height:1}.na{float:right;font-size:12px;color:var(--m);text-transform:none;letter-spacing:0}.na input{width:auto;min-height:0;margin:0 3px 0 0;vertical-align:middle}.row>div{min-width:0}input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:42px}
+.tm{color:var(--a);font-weight:800;font-size:22px;line-height:1.1;margin-bottom:3px}.nxj{display:flex;align-items:center;gap:10px;margin-top:10px;background:#111;border:1px solid var(--b);border-radius:12px;padding:10px 12px}.nxj .tt{font-size:26px;font-weight:800;color:var(--a);white-space:nowrap}.nxj .nn{flex:1;min-width:0}.nxj .nn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nxj button{flex:none;width:40px;height:40px;padding:0;font-size:22px;line-height:1}.lir{display:flex;gap:8px;align-items:center;margin-bottom:8px}.lir>span:first-child{flex:1;min-width:0;display:block}.lir>.cb{flex:none;width:112px}.lir .lp{width:100%}.lir .lx{flex:none;width:38px;height:42px;padding:0;color:var(--m)}.litot{display:flex;justify-content:space-between;align-items:center;margin:2px 0 10px}.litot span{font-size:15px}.litot b{font-size:20px;color:var(--a)}.na{float:right;font-size:12px;color:var(--m);text-transform:none;letter-spacing:0}.na input{width:auto;min-height:0;margin:0 3px 0 0;vertical-align:middle}.row>div{min-width:0}input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:42px}
 .opt small{font-weight:400;opacity:.75;font-size:12px}
 .cb{position:relative;display:block}.cb input{padding-right:38px}
 .cbt{position:absolute;right:3px;top:3px;bottom:3px;width:34px;padding:0;border:none;background:transparent;color:var(--m);font-size:15px}
@@ -202,8 +202,10 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <label>Name</label><input id="f_name">
   <div class="row"><div><label>Phone</label><input id="f_phone" type="tel"></div><div><label>Email</label><input id="f_email" type="email"></div></div>
   <label>Address</label><input id="f_addr">
-  <div class="row"><div><label>Service</label><input id="f_svc" list="svcs"></div><div><label>Status</label><select id="f_status"></select></div></div>
-  <div class="row"><div><label>Price ($)</label><input id="f_price" type="number" inputmode="decimal"></div><div><label>Source</label><input id="f_src" placeholder="Door knock, referral…"></div></div>
+  <div class="row"><div><label>Status</label><select id="f_status"></select></div><div><label>Source</label><input id="f_src" placeholder="Door knock, referral…"></div></div>
+  <label>Services &amp; prices</label><div id="li"></div>
+  <div class="litot"><button type="button" class="mini" id="li_add">+ Add service</button><span>Total <b id="li_tot">$0</b></span></div>
+  <input id="f_svc" type="hidden"><input id="f_price" type="hidden">
   <div class="row"><div><label>Job date <span class="na"><input type="checkbox" id="f_jobna"> N/A</span></label><input id="f_job" type="date"></div><div><label>Job time <span class="na"><input type="checkbox" id="f_timena"> N/A</span></label><input id="f_time" type="time"></div></div>
   <div class="row"><div><label>Follow up on</label><input id="f_fu" type="date"></div></div>
   <label>Notes</label><textarea id="f_notes"></textarea><div class="nchips" id="f_chips"></div>
@@ -426,7 +428,7 @@ function render(){
   $("list").innerHTML=list.length?list.map(r=>{
     const ph=(r.phone||"").replace(/[^\d+]/g,""),late=r.follow_up&&r.follow_up<=today(),next=ST[ST.indexOf(r.status)+1];
     return `<div class="card"><div class="top"><div style="display:flex;gap:10px;min-width:0">${ph?`<input type="checkbox" data-sel="${r.id}" ${sel.has(r.id)?"checked":""}>`:""}<div><div class="nm">${esc(r.name)}</div>
-      <div class="sub">${esc(r.service)}${r.price?" · "+money(r.price):""}</div>
+      <div class="sub">${esc(r.service)}${r.price?" · "+money(r.price):""}</div>${itemsLine(r)?`<div class="sub">${esc(itemsLine(r))}</div>`:""}
       ${r.address?`<div class="sub">${esc(r.address)}</div>`:""}
       ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}${splitNote(r.notes).time?" · "+fmtT(splitNote(r.notes).time):""}</div>`:""}
       ${r.follow_up?`<div class="sub ${late?"due":""}">${["Paid","Done"].includes(r.status)?"Rebook reminder":"Follow up"}: ${esc(r.follow_up)}</div>`:""}
@@ -436,7 +438,25 @@ function render(){
       <button class="g" data-share="${r.id}">Share</button>${r.status==="Paid"&&ph?`<button data-rv="${r.id}">Ask for review</button>`:""}${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button class="g" data-edit="${r.id}">Edit</button></div></div>`}).join("")
     :`<div class="empty">No customers yet. Tap “+ New customer” or log a sale on the map.</div>`;
 }
-function splitNote(n){n=n||"";const m=n.match(/^Time:\s*(\d{1,2}:\d{2})\s*\n?/);return m?{time:m[1].padStart(5,"0"),rest:n.slice(m[0].length)}:{time:"",rest:n}}
+function splitNote(n){n=n||"";let time="",items=null,rest=n,m;
+  for(let i=0;i<2;i++){
+    if(m=rest.match(/^Time:\s*(\d{1,2}:\d{2})[ \t]*\n?/)){time=m[1].padStart(5,"0");rest=rest.slice(m[0].length)}
+    else if(m=rest.match(/^Items:\s*(\[.*\])[ \t]*\n?/)){try{items=JSON.parse(m[1])}catch(e){}rest=rest.slice(m[0].length)}
+    else break}
+  return{time,items,rest}}
+let LI=[];
+function liRender(){
+  $("li").innerHTML=LI.map((x,i)=>`<div class="lir"><span class="cb-slot" data-i="${i}"><input id="li_s${i}" placeholder="Service" autocomplete="off"></span><input id="li_p${i}" class="lp" type="number" inputmode="decimal" placeholder="$ price">${LI.length>1?`<button type="button" class="lx" data-rm="${i}">✕</button>`:""}</div>`).join("");
+  LI.forEach((x,i)=>{const si=$("li_s"+i),pi=$("li_p"+i);si.value=x.n||"";pi.value=x.p===""||x.p==null?"":x.p;
+    si.addEventListener("input",()=>{LI[i].n=si.value;liTot()});pi.addEventListener("input",()=>{LI[i].p=pi.value;liTot()});
+    const slot=si.parentNode;slot.className="";combo("li_s"+i,svcOpts);combo("li_p"+i,priceOpts("li_s"+i))});
+  liTot()}
+function liTot(){const it=LI.filter(x=>(x.n||"").trim()||+x.p>0),t=it.reduce((a,x)=>a+(+x.p||0),0);
+  $("li_tot").textContent=t%1?"$"+t.toFixed(2):money(t);$("f_svc").value=it.map(x=>(x.n||"").trim()).filter(Boolean).join(", ");$("f_price").value=t||""}
+$("li_add").onclick=()=>{LI.push({n:"",p:""});liRender();const el=$("li_s"+(LI.length-1));if(el)el.focus()};
+$("li").onclick=e=>{const i=e.target.dataset.rm;if(i==null)return;LI.splice(+i,1);liRender()};
+function liInit(r,items){LI=items&&items.length?items.map(x=>({n:x[0],p:x[1]})):[{n:r.service||"",p:r.price||""}];liRender()}
+const itemsLine=r=>{const it=splitNote(r.notes).items;return it&&it.length>1?it.map(x=>x[0]+" "+money(x[1])).join(" · "):""};
 function fmtT(t){if(!t)return"";const[h,m]=t.split(":").map(Number);return(h%12||12)+":"+String(m).padStart(2,"0")+(h<12?" AM":" PM")}
 function naSync(){["job","time"].forEach(k=>{const c=$("f_"+k+"na"),i=$("f_"+k);if(c.checked)i.value="";i.disabled=c.checked;i.style.opacity=c.checked?.4:1})}
 ["job","time"].forEach(k=>$("f_"+k+"na").onchange=naSync);
@@ -444,7 +464,7 @@ function openForm(r){
   editId=r?r.id:null;r=r||{};$("dt").textContent=r.id?"Edit customer":"New customer";
   const m={f_name:"name",f_phone:"phone",f_email:"email",f_addr:"address",f_svc:"service",f_price:"price",f_src:"source",f_job:"job_date",f_fu:"follow_up",f_notes:"notes"};
   for(const k in m)$(k).value=r[m[k]]||"";
-  const sn=splitNote(r.notes);$("f_notes").value=sn.rest;$("f_time").value=sn.time;
+  const sn=splitNote(r.notes);$("f_notes").value=sn.rest;$("f_time").value=sn.time;liInit(r,sn.items);
   $("f_jobna").checked=!!r.id&&!r.job_date;$("f_timena").checked=!!r.id&&!sn.time;naSync();
   $("f_status").value=r.status||"Lead";$("del").style.display=r.id?"":"none";noteChips();$("dlg").showModal();
 }
@@ -453,7 +473,7 @@ $("cancel").onclick=()=>$("dlg").close();
 $("save").onclick=()=>{
   const name=$("f_name").value.trim();if(!name){$("f_name").focus();return}
   const d={name,phone:$("f_phone").value.trim(),email:$("f_email").value.trim(),address:$("f_addr").value.trim(),service:$("f_svc").value.trim(),
-    status:$("f_status").value,price:+$("f_price").value||0,source:$("f_src").value.trim(),job_date:$("f_job").value||null,follow_up:$("f_fu").value||null,notes:($("f_time").value&&!$("f_timena").checked?"Time: "+$("f_time").value+($("f_notes").value.trim()?"\n":""):"")+$("f_notes").value.trim()};
+    status:$("f_status").value,price:+$("f_price").value||0,source:$("f_src").value.trim(),job_date:$("f_job").value||null,follow_up:$("f_fu").value||null,notes:($("f_time").value&&!$("f_timena").checked?"Time: "+$("f_time").value+"\n":"")+(LI.filter(x=>(x.n||"").trim()).length>1?"Items: "+JSON.stringify(LI.filter(x=>(x.n||"").trim()).map(x=>[x.n.trim(),+x.p||0]))+"\n":"")+$("f_notes").value.trim()};
   if(["Done","Paid"].includes(d.status)&&d.job_date&&!d.follow_up)d.follow_up=rebookDate(d.job_date,d.service);
   if(editId)mutate("upd","customers",editId,d);else mutate("ins","customers",newId(),d);
   $("dlg").close();
@@ -852,6 +872,7 @@ async function shareJob(id){
   if(r.phone)L.push("Phone: "+r.phone);
   if(r.address)L.push("Address: "+r.address);
   if(r.job_date)L.push("Date: "+longDay(r.job_date)+(splitNote(r.notes).time?" at "+fmtT(splitNote(r.notes).time):""));
+  if(itemsLine(r))L.push("Services: "+itemsLine(r));
   if(splitNote(r.notes).rest)L.push("Notes: "+splitNote(r.notes).rest);
   if(r.address)L.push("Directions: https://maps.apple.com/?daddr="+encodeURIComponent(r.address));
   const text=L.join("\n");
@@ -903,7 +924,7 @@ function combo(id,getOpts){
   pn.onclick=e=>{const v=e.target.dataset.v;if(v==null)return;inp.value=v;pn.hidden=true;inp.dispatchEvent(new Event("input",{bubbles:true}));pn.hidden=true};
 }
 document.addEventListener("pointerdown",e=>{if(!e.target.closest(".cb"))document.querySelectorAll(".cbp").forEach(x=>x.hidden=true)});
-combo("f_svc",svcOpts);combo("f_src",srcOpts);combo("f_price",priceOpts("f_svc"));
+combo("f_src",srcOpts);
 combo("p_svc",svcOpts);combo("p_price",priceOpts("p_svc"));
 function noteChips(){$("f_chips").innerHTML=noteOpts().map(x=>`<button type="button" data-n="${esc(x)}">${esc(x)}</button>`).join("")}
 $("f_chips").onclick=e=>{const n=e.target.dataset.n;if(!n)return;const ta=$("f_notes");ta.value=(ta.value.trim()?ta.value.replace(/[\s;]*$/,"")+"; ":"")+n}
