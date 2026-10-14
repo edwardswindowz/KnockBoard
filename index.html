@@ -194,7 +194,6 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
     <div class="sub" id="mmsg" style="margin-bottom:6px">Search an address, then tap around the area you want to measure. Drag a dot to fine-tune it.</div>
     <div class="row"><button id="mdone" style="flex:1">Finish area</button><button id="mundo" style="flex:1">Undo point</button><button id="mclr" style="flex:1">Clear all</button></div>
     <div id="mres"></div>
-    <label style="margin-top:6px">This measurement is for</label><div class="mt2" id="mtype"><button data-t="Roof" class="on">Roof</button><button data-t="Driveway">Driveway</button></div>
     <div class="row" style="margin-top:6px;align-items:end"><div><label>Price per sq ft ($)</label><input id="mppf" type="number" step="0.01" inputmode="decimal" placeholder="0.15"></div><div><label>Quote</label><div id="mquote" style="font-size:26px;font-weight:800;color:var(--a)">$0</div></div></div>
     <button id="msave" class="btn pri" style="width:100%;margin-top:8px;padding:13px">Save to customer</button>
   </div>
@@ -698,15 +697,16 @@ async function mSearch(){
 }
 $("mgo").onclick=mSearch;$("maddr").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();mSearch()}};
 
-let mAddr="",mKind="Roof";
-$("mtype").onclick=e=>{const b=e.target.closest("button");if(!b)return;mKind=b.dataset.t;[...$("mtype").children].forEach(x=>x.classList.toggle("on",x===b))};
+let mAddr="";
+const KIND={roofing:"Roof",pest:"Pest control",solar:"Solar",window:"Window cleaning",pressure:"Pressure washing",other:"Property"};
+const mKindNow=()=>KIND[(prof.niches&&prof.niches[0])||"other"]||"Property";
 function mTotals(){const tot=mAreas.reduce((a,x)=>a+x.sqft,0),cs=mCur.length>=3?mArea(mCur):0,sq=tot+cs,ppf=parseFloat($("mppf").value)||0;
   return{sq:Math.round(sq),ppf,price:Math.round(sq*ppf),areas:mAreas.map(a=>Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
 function mNote(t){const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
-  return "Measured "+d+" ("+mKind+"): "+(t.areas.length>1?t.areas.map((a,i)=>"Area "+(i+1)+" "+a.toLocaleString()+" sq ft").join(" + ")+" = ":"")+t.sq.toLocaleString()+" sq ft"+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")}
+  return "Measured "+d+" ("+mKindNow()+"): "+(t.areas.length>1?t.areas.map((a,i)=>"Area "+(i+1)+" "+a.toLocaleString()+" sq ft").join(" + ")+" = ":"")+t.sq.toLocaleString()+" sq ft"+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")}
 $("msave").onclick=()=>{
   const t=mTotals();if(!t.sq){$("mmsg").textContent="Outline an area first, then save it.";return}
-  $("msum").textContent=mKind+" · "+t.sq.toLocaleString()+" sq ft"+(t.ppf?" · quote "+money(t.price):"");
+  $("msum").textContent=mKindNow()+" · "+t.sq.toLocaleString()+" sq ft"+(t.ppf?" · quote "+money(t.price):"");
   $("m_name").value="";$("m_phone").value="";$("m_addr").dataset.auto="";$("m_addr").value=mAddr||$("maddr").value.trim();
   $("mnames").innerHTML=customers.map(r=>`<option value="${esc(r.name)}">`).join("");
   $("mnote").textContent="";$("mdlg").showModal();
@@ -725,10 +725,10 @@ $("mok").onclick=()=>{
   if(ex){
     const d={notes:(ex.notes?ex.notes+"\n":"")+note};
     if(addr&&!ex.address)d.address=addr;if(phone&&!ex.phone)d.phone=phone;
-    if(t.price)d.price=t.price;if(!ex.service)d.service=mKind;if(ex.status==="Lead")d.status="Quoted";
+    if(t.price)d.price=t.price;if(!ex.service)d.service=mKindNow();if(ex.status==="Lead")d.status="Quoted";
     mutate("upd","customers",ex.id,d);
-  }else mutate("ins","customers",newId(),{name,phone,email:"",address:addr,service:mKind,status:"Quoted",price:t.price,source:"Measure",job_date:null,follow_up:null,notes:note});
-  if(mWant){mWant=false;const ph=phone.replace(/[^\d+]/g,"");if(ph){const t2=mTotals();setTimeout(()=>{location.href=smsHref([ph],hiTxt(name)+"Here's your quote for your "+mKind.toLowerCase()+": about "+t2.sq.toLocaleString()+" sq ft"+(t2.price?" for "+money(t2.price):"")+". Reply YES and I'll get you on the schedule.")},200)}}
+  }else mutate("ins","customers",newId(),{name,phone,email:"",address:addr,service:mKindNow(),status:"Quoted",price:t.price,source:"Measure",job_date:null,follow_up:null,notes:note});
+  if(mWant){mWant=false;const ph=phone.replace(/[^\d+]/g,"");if(ph){const t2=mTotals();setTimeout(()=>{location.href=smsHref([ph],hiTxt(name)+"Here's your quote for your "+mKindNow().toLowerCase()+": about "+t2.sq.toLocaleString()+" sq ft"+(t2.price?" for "+money(t2.price):"")+". Reply YES and I'll get you on the schedule.")},200)}}
   $("mdlg").close();$("mmsg").textContent="Saved to "+name+" in Customers. Tap Customers to move them to Scheduled, Done or Paid.";
 };
 
