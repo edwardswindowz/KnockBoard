@@ -70,9 +70,9 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 .kmode #mmap{flex:1;height:auto;min-height:120px}
 .mvx{width:34px;height:34px;display:flex;align-items:center;justify-content:center}.mvx::after{content:"";width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid #2b7fff;box-sizing:border-box}
 #mres{max-height:30vh;overflow-y:auto}
-.mtypes{display:flex;gap:8px;margin:2px 0 8px}.mtypes button{flex:1;padding:11px 6px;border-radius:12px;background:#111;border:1px solid var(--b);color:#bbb;font-size:13px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:5px}.mtypes button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.mtypes button.on{background:var(--a);border-color:var(--a);color:#fff}
-.mpanel{background:#0c1220;border:1px solid #1d2a44;border-radius:14px;padding:4px 14px;margin:10px 0}.mpr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #1b2538;font-size:15px}.mpr:last-child{border:none}.mpr span{color:#cbd5e6}.mpr b{font-size:16px}.mpr select{width:auto;min-width:110px;padding:6px 10px;min-height:0}.mst{display:flex;gap:6px}.mst button{width:38px;height:34px;padding:0;border-radius:9px}.mst button.on{background:var(--a);border-color:var(--a);color:#fff}
-.mlbl{background:#2b7fff!important;color:#fff!important;border:none!important;border-radius:8px!important;font-weight:700;font-size:13px;padding:3px 8px!important;box-shadow:0 2px 8px #0008!important}.mlbl::before{display:none!important}
+.mt2{display:flex;gap:8px;margin:6px 0 2px}.mt2 button{flex:1;padding:11px 6px;border-radius:12px;font-weight:600}.mt2 button.on{background:var(--a);border-color:var(--a);color:#fff}
+.wxc{border-color:#3a5a99;background:#0c1626}.wxc .lb{color:#7db4ff}.wxr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #1d2a44;font-size:14px}.wxr span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kn{display:grid;grid-template-columns:62px repeat(4,1fr);gap:4px;align-items:center;text-align:center;padding:6px 0}.kn+.kn{border-top:1px solid var(--b)}.kn .t{text-align:left;font-size:13px;color:var(--m)}.kn b{display:block;font-size:19px;color:var(--a)}.kn small{display:block;font-size:11px;color:var(--m)}
 .marow{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}.marow span{flex:1}.marow b{color:var(--a)}
 .calh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.calh b{font-size:16px}.calh button{padding:4px 12px;font-size:18px}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.cal .wd{text-align:center;font-size:11px;color:var(--m);padding:3px 0}
@@ -142,8 +142,10 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <div class="tabs"><button class="chip on" data-tab="H">Home</button><button class="chip" data-tab="C">Customers</button><button class="chip" data-tab="K">Knocking</button><button class="chip" data-tab="M">Measure</button><button class="chip" data-tab="P">Profit</button></div></div>
 
   <div id="tabH">
+    <div id="hwx"></div>
     <div class="card next" id="hnext"></div>
     <div class="r3" id="hstats"></div>
+    <div class="card" id="hknock" hidden></div>
     <div class="card" id="hcal"></div>
     <div id="hday"></div>
     <div id="hattn"></div>
@@ -190,20 +192,9 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
     <div class="row"><input id="maddr" placeholder="Type the address (street, city, state)" style="flex:1"><button id="mgo" class="btn pri">Go</button></div>
     <div id="mmap"></div>
     <div class="sub" id="mmsg" style="margin-bottom:6px">Search an address, then tap around the area you want to measure. Drag a dot to fine-tune it.</div>
-    <div class="mtypes" id="mtypes">
-      <button data-t="roof" class="on"><svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8M6 10v10h12V10"/></svg>Roof</button>
-      <button data-t="drive"><svg viewBox="0 0 24 24"><path d="M8 3L5 21M16 3l3 18M12 4v3M12 11v3M12 18v3"/></svg>Driveway</button>
-      <button data-t="prop"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10"/></svg>Property</button>
-    </div>
     <div class="row"><button id="mdone" style="flex:1">Finish area</button><button id="mundo" style="flex:1">Undo point</button><button id="mclr" style="flex:1">Clear all</button></div>
     <div id="mres"></div>
-    <div class="mpanel" id="mpanel">
-      <div class="mpr"><span>Area</span><b id="mp_area">0 sq ft</b></div>
-      <div class="mpr"><span>Perimeter</span><b id="mp_per">0 ft</b></div>
-      <div class="mpr"><span>Roof pitch</span><select id="mpitch"><option value="0">Flat / none</option><option value="3">3/12</option><option value="4">4/12</option><option value="5">5/12</option><option value="6">6/12</option><option value="7">7/12</option><option value="8">8/12</option><option value="9">9/12</option><option value="10">10/12</option><option value="12">12/12</option></select></div>
-      <div class="mpr"><span>Stories</span><div class="mst" id="mstories"><button data-s="1" class="on">1</button><button data-s="2">2</button><button data-s="3">3</button></div></div>
-      <div class="mpr" id="mp_sr" hidden><span>Roof surface (with pitch)</span><b id="mp_surf"></b></div>
-    </div>
+    <label style="margin-top:6px">This measurement is for</label><div class="mt2" id="mtype"><button data-t="Roof" class="on">Roof</button><button data-t="Driveway">Driveway</button></div>
     <div class="row" style="margin-top:6px;align-items:end"><div><label>Price per sq ft ($)</label><input id="mppf" type="number" step="0.01" inputmode="decimal" placeholder="0.15"></div><div><label>Quote</label><div id="mquote" style="font-size:26px;font-weight:800;color:var(--a)">$0</div></div></div>
     <button id="msave" class="btn pri" style="width:100%;margin-top:8px;padding:13px">Save to customer</button>
   </div>
@@ -230,6 +221,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
 <dialog id="sdlg">
   <h2 style="margin:0 0 2px;font-size:19px">Settings</h2>
   <div class="sub" id="semail" style="margin-bottom:10px"></div>
+  <label>Your business name <span style="text-transform:none;letter-spacing:0">(used in your texts)</span></label><input id="bizname" placeholder="Edwards Window Washing" autocomplete="off" style="margin-bottom:10px">
   <button class="opt" id="editbiz">My business &amp; goals<br><small>Change your trade and what you use KnockBoard for</small></button>
   <button class="opt" id="manage">Manage plan<br><small>Billing, payment method, cancel</small></button>
   <button class="opt" id="out" style="color:#ff6b6b">Log out</button>
@@ -259,7 +251,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <div class="row"><div><label>Phone (optional)</label><input id="m_phone" type="tel"></div></div>
   <label>Address</label><input id="m_addr">
   <div class="sub" id="mnote" style="margin:6px 0"></div>
-  <div class="row" style="margin-top:12px;justify-content:flex-end"><button id="mcancel">Cancel</button> <button class="btn pri" id="mok">Save</button></div>
+  <div class="row" style="margin-top:12px;justify-content:flex-end"><button id="mcancel">Cancel</button> <button id="mtext">Save &amp; text quote</button> <button class="btn pri" id="mok">Save</button></div>
 </dialog>
 
 <dialog id="odlg">
@@ -658,38 +650,27 @@ function mAddMk(ll){
 }
 function mRedraw(skipMk){
   if(mCurLine){mm.removeLayer(mCurLine);mCurLine=null}
-  if(mCur.length>1){mCurLine=(mCur.length>2?L.polygon:L.polyline)(mCur,{color:MC[mType],weight:3,fillOpacity:.25}).addTo(mm);
-    if(mCur.length>2)mCurLine.bindTooltip(Math.round(mArea(mCur)).toLocaleString()+" sq ft",{permanent:true,direction:"center",className:"mlbl"})}
+  if(mCur.length>1)mCurLine=(mCur.length>2?L.polygon:L.polyline)(mCur,{color:"#2b7fff",weight:3,fillOpacity:.25}).addTo(mm);
   mList();
 }
-const MC={roof:"#2b7fff",drive:"#7db4ff",prop:"#22c55e"},MT={roof:"Roof",drive:"Driveway",prop:"Property"};
-let mType="roof",mStories=1;
-const mSlope=()=>{const p=parseFloat($("mpitch").value)||0;return Math.sqrt(1+(p/12)*(p/12))};
-const mEff=a=>a.type==="roof"?a.sqft*mSlope():a.sqft;
 function mList(){
   const el=$("mres");let tot=0,h="";
-  mAreas.forEach((a,i)=>{tot+=a.sqft;h+=`<div class="marow"><span>${MT[a.type]} ${i+1}</span><b>${Math.round(a.sqft).toLocaleString()} sq ft</b><button data-del="${i}" style="padding:4px 10px">✕</button></div>`});
+  mAreas.forEach((a,i)=>{tot+=a.sqft;h+=`<div class="marow"><span>Area ${i+1}</span><b>${Math.round(a.sqft).toLocaleString()} sq ft</b><button data-del="${i}" style="padding:4px 10px">✕</button></div>`});
   const cs=mArea(mCur);
-  if(mCur.length>=3){h+=`<div class="marow"><span>Drawing ${MT[mType].toLowerCase()}…</span><b>${Math.round(cs).toLocaleString()} sq ft</b></div>`}
+  if(mCur.length>=3){h+=`<div class="marow"><span>Drawing…</span><b>${Math.round(cs).toLocaleString()} sq ft</b></div>`}
   else if(mCur.length)h+=`<div class="marow"><span>Drawing… tap at least 3 points</span></div>`;
   const all=tot+cs;
+  if(mAreas.length+((mCur.length>=3)?1:0)>0)h+=`<div class="marow" style="border-top:1px solid #333"><span><b>Total</b></span><b>${Math.round(all).toLocaleString()} sq ft</b></div>`;
   el.innerHTML=h;
-  const t=mTotals();
-  $("mp_area").textContent=t.raw.toLocaleString()+" sq ft";
-  $("mp_per").textContent=t.per.toLocaleString()+" ft";
-  $("mp_sr").hidden=!(t.hasRoof&&mSlope()>1);$("mp_surf").textContent=Math.round(t.roofSurf).toLocaleString()+" sq ft";
-  $("mquote").textContent="$"+t.price.toLocaleString();
+  const ppf=parseFloat($("mppf").value)||0;
+  $("mquote").textContent="$"+(all*ppf).toLocaleString(undefined,{maximumFractionDigits:0});
 }
-$("mtypes").onclick=e=>{const b=e.target.closest("button");if(!b)return;mType=b.dataset.t;[...$("mtypes").children].forEach(x=>x.classList.toggle("on",x===b));mRedraw()};
-$("mstories").onclick=e=>{const b=e.target.closest("button");if(!b)return;mStories=+b.dataset.s;[...$("mstories").children].forEach(x=>x.classList.toggle("on",x===b))};
-$("mpitch").onchange=mList;
 $("mres").onclick=e=>{const i=e.target.dataset.del;if(i==null)return;const a=mAreas.splice(+i,1)[0];mm.drawn.removeLayer(a.layer);mList()};
 $("mppf").oninput=()=>{try{localStorage.setItem("kb_ppf",$("mppf").value)}catch(e){}mList()};
 $("mdone").onclick=()=>{
   if(mCur.length<3){$("mmsg").textContent="Tap at least 3 points around the area first.";return}
-  const sq=mArea(mCur),layer=L.polygon(mCur,{color:MC[mType],weight:3,fillOpacity:.3}).addTo(mm.drawn);
-  layer.bindTooltip(Math.round(sq).toLocaleString()+" sq ft",{permanent:true,direction:"center",className:"mlbl"});
-  mAreas.push({sqft:sq,per:mPerim(mCur,true),type:mType,layer});
+  const layer=L.polygon(mCur,{color:"#22c55e",weight:3,fillOpacity:.3}).addTo(mm.drawn);
+  mAreas.push({sqft:mArea(mCur),layer});
   mCurMk.forEach(m=>mm.removeLayer(m));mCurMk=[];mCur=[];if(mCurLine){mm.removeLayer(mCurLine);mCurLine=null}
   $("mmsg").textContent="Saved. Tap again to outline another area (house, driveway, patio…).";mList();
 };
@@ -717,18 +698,15 @@ async function mSearch(){
 }
 $("mgo").onclick=mSearch;$("maddr").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();mSearch()}};
 
-let mAddr="";
-function mTotals(){
-  const cs=mCur.length>=3?{sqft:mArea(mCur),per:mPerim(mCur,true),type:mType}:null,list=mAreas.concat(cs?[cs]:[]),
-    raw=list.reduce((a,x)=>a+x.sqft,0),eff=list.reduce((a,x)=>a+mEff(x),0),per=list.reduce((a,x)=>a+(x.per||0),0),
-    roofSurf=list.filter(x=>x.type==="roof").reduce((a,x)=>a+mEff(x),0),ppf=parseFloat($("mppf").value)||0;
-  return{raw:Math.round(raw),sq:Math.round(eff),per:Math.round(per),roofSurf,hasRoof:list.some(x=>x.type==="roof"),ppf,price:Math.round(eff*ppf),
-    areas:list.map(a=>[MT[a.type],Math.round(a.sqft)])}}
-function mNote(t){const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),pt=parseFloat($("mpitch").value)||0;
-  return "Measured "+d+": "+t.areas.map(a=>a[0]+" "+a[1].toLocaleString()+" sq ft").join(" + ")+" · perimeter "+t.per.toLocaleString()+" ft"+(pt?" · pitch "+pt+"/12":"")+" · "+mStories+" stor"+(mStories===1?"y":"ies")+(pt&&t.hasRoof?" · roof surface "+Math.round(t.roofSurf).toLocaleString()+" sq ft":"")+(t.ppf?" · "+t.sq.toLocaleString()+" sq ft × $"+t.ppf+"/sq ft = "+money(t.price):"")}
+let mAddr="",mKind="Roof";
+$("mtype").onclick=e=>{const b=e.target.closest("button");if(!b)return;mKind=b.dataset.t;[...$("mtype").children].forEach(x=>x.classList.toggle("on",x===b))};
+function mTotals(){const tot=mAreas.reduce((a,x)=>a+x.sqft,0),cs=mCur.length>=3?mArea(mCur):0,sq=tot+cs,ppf=parseFloat($("mppf").value)||0;
+  return{sq:Math.round(sq),ppf,price:Math.round(sq*ppf),areas:mAreas.map(a=>Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
+function mNote(t){const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  return "Measured "+d+" ("+mKind+"): "+(t.areas.length>1?t.areas.map((a,i)=>"Area "+(i+1)+" "+a.toLocaleString()+" sq ft").join(" + ")+" = ":"")+t.sq.toLocaleString()+" sq ft"+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")}
 $("msave").onclick=()=>{
   const t=mTotals();if(!t.sq){$("mmsg").textContent="Outline an area first, then save it.";return}
-  $("msum").textContent=t.sq.toLocaleString()+" sq ft"+(t.ppf?" · quote "+money(t.price):"");
+  $("msum").textContent=mKind+" · "+t.sq.toLocaleString()+" sq ft"+(t.ppf?" · quote "+money(t.price):"");
   $("m_name").value="";$("m_phone").value="";$("m_addr").dataset.auto="";$("m_addr").value=mAddr||$("maddr").value.trim();
   $("mnames").innerHTML=customers.map(r=>`<option value="${esc(r.name)}">`).join("");
   $("mnote").textContent="";$("mdlg").showModal();
@@ -738,6 +716,8 @@ $("m_name").oninput=()=>{const v=$("m_name").value.trim().toLowerCase(),r=v&&cus
   else $("mnote").textContent=""};
 $("m_addr").oninput=()=>{$("m_addr").dataset.auto="0"};
 $("mcancel").onclick=()=>$("mdlg").close();
+let mWant=false;
+$("mtext").onclick=()=>{if(!$("m_name").value.trim()){$("m_name").focus();return}if(!$("m_phone").value.trim()){$("mnote").textContent="Add the customer's phone number to text them the quote.";$("m_phone").focus();return}mWant=true;$("mok").click()};
 $("mok").onclick=()=>{
   const name=$("m_name").value.trim();if(!name){$("m_name").focus();return}
   const t=mTotals(),note=mNote(t),addr=$("m_addr").value.trim(),phone=$("m_phone").value.trim(),
@@ -745,9 +725,10 @@ $("mok").onclick=()=>{
   if(ex){
     const d={notes:(ex.notes?ex.notes+"\n":"")+note};
     if(addr&&!ex.address)d.address=addr;if(phone&&!ex.phone)d.phone=phone;
-    if(t.price)d.price=t.price;if(ex.status==="Lead")d.status="Quoted";
+    if(t.price)d.price=t.price;if(!ex.service)d.service=mKind;if(ex.status==="Lead")d.status="Quoted";
     mutate("upd","customers",ex.id,d);
-  }else mutate("ins","customers",newId(),{name,phone,email:"",address:addr,service:"",status:"Quoted",price:t.price,source:"Measure",job_date:null,follow_up:null,notes:note});
+  }else mutate("ins","customers",newId(),{name,phone,email:"",address:addr,service:mKind,status:"Quoted",price:t.price,source:"Measure",job_date:null,follow_up:null,notes:note});
+  if(mWant){mWant=false;const ph=phone.replace(/[^\d+]/g,"");if(ph){const t2=mTotals();setTimeout(()=>{location.href=smsHref([ph],hiTxt(name)+"Here's your quote for your "+mKind.toLowerCase()+": about "+t2.sq.toLocaleString()+" sq ft"+(t2.price?" for "+money(t2.price):"")+". Reply YES and I'll get you on the schedule.")},200)}}
   $("mdlg").close();$("mmsg").textContent="Saved to "+name+" in Customers. Tap Customers to move them to Scheduled, Done or Paid.";
 };
 
@@ -847,9 +828,16 @@ function agoText(k){const days=Math.round((parseD(today())-parseD(k))/864e5);if(
 let calM=new Date(new Date().getFullYear(),new Date().getMonth(),1),calSel=today();
 const phoneOfC=r=>(r.phone||"").replace(/[^\d+]/g,"");
 const longDay=k=>parseD(k).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
+const bizN=()=>(lsGet(K("bizname"),"")||"").trim();
+const hiTxt=n=>"Hi "+firstName(n)+(bizN()?", it's "+bizN():"")+"! ";
+function jobMsg(kind,r){const tm=splitNote(r.notes).time,when=longDay(r.job_date)+(tm?" at "+fmtT(tm):"");
+  if(kind==="way")return hiTxt(r.name)+"I'm on my way and should be there in about 15 minutes.";
+  if(kind==="rem")return hiTxt(r.name)+"Just a reminder that we're scheduled for "+when+(r.address?" at "+r.address:"")+". Reply here if you need to change anything.";
+  if(kind==="rain")return hiTxt(r.name)+"Rain is in the forecast for "+longDay(r.job_date)+", so I'd like to move your appointment to make sure the work comes out right. What other day works for you?";
+  return ""}
 const jobCard=(r,extra)=>{const ph=phoneOfC(r),tm=splitNote(r.notes).time;return `<div class="card"><div class="top"><div>${tm?`<div class="tm">${fmtT(tm)}</div>`:""}<div class="nm">${esc(r.name)}</div>
   <div class="sub">${esc(r.service||"")}${r.price?(r.service?" · ":"")+money(r.price):""}</div>${r.address?`<div class="sub">${esc(r.address)}</div>`:""}${extra||""}</div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
-  <div class="acts">${ph?`<a class="btn mini" href="tel:${ph}">Call</a><a class="btn mini" href="sms:${ph}">Text</a>`:""}${r.address?`<a class="btn mini" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}<button class="mini" data-share="${r.id}">Share</button><button class="mini" data-edit="${r.id}">Edit</button></div></div>`};
+  <div class="acts">${ph?`<a class="btn mini" href="tel:${ph}">Call</a><a class="btn mini" href="sms:${ph}">Text</a>`:""}${r.address?`<a class="btn mini" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}<button class="mini" data-share="${r.id}">Share</button><button class="mini" data-edit="${r.id}">Edit</button></div>${ph?`<div class="acts"><a class="btn mini" href="${smsHref([ph],jobMsg("way",r))}">On my way</a><a class="btn mini" href="${smsHref([ph],jobMsg("rem",r))}">Send reminder</a></div>`:""}</div>`};
 const byTime=(a,b)=>(splitNote(a.notes).time||"99:99").localeCompare(splitNote(b.notes).time||"99:99");
 let nxD="",nxI=0,nxN=1;
 function homeUI(){
@@ -878,7 +866,7 @@ function homeUI(){
   // selected day
   const dj=by[calSel]||[];
   $("hday").innerHTML=`<div class="sec"><h3>${longDay(calSel)}</h3><span class="sub">${dj.length?dj.length+" job"+(dj.length===1?"":"s")+" · "+money(sum(dj)):"Nothing scheduled"}</span></div>`
-    +[...dj].sort(byTime).map(r=>jobCard(r)).join("")+`<button class="mini" data-addday="${calSel}" style="margin-top:2px">+ Add a job on this day</button>`;
+    +[...dj].sort(byTime).map(r=>jobCard(r)).join("")+`<div class="row" style="margin-top:2px;gap:8px"><button class="mini" data-addday="${calSel}">+ Add a job on this day</button>${dj.filter(c=>c.address).length?`<button class="mini" data-route="${calSel}">Route this day</button>`:""}</div>`;
   // attention
   let h="";
   const qshow=[...qs].sort((a,b)=>(a.follow_up||"9999").localeCompare(b.follow_up||"9999")).slice(0,5);
@@ -893,11 +881,45 @@ function homeUI(){
     return `<div class="card"><div class="top"><div><div class="nm">${esc(r.name)}</div><div class="sub">${VERB[n]||"Completed"}: ${esc(r.service||"job")} · ${ago}</div></div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
       <div class="acts">${ph?`<a class="btn mini" href="${smsHref([ph],body)}">Text to rebook</a><a class="btn mini" href="tel:${ph}">Call</a>`:""}<button class="mini" data-snooze="${r.id}">Remind me later</button><button class="mini" data-dismiss="${r.id}">Dismiss</button></div></div>`}).join("")}
   $("hattn").innerHTML=h;
+  knockCard();wxUpdate();
 }
+function knockCard(){
+  const el=$("hknock");if(!el)return;if(!pins.length){el.hidden=true;return}
+  const T=today(),w0=new Date();w0.setDate(w0.getDate()-w0.getDay());const WK=ymd(w0),days=new Set(pins.map(p=>ymd(new Date(p.created_at))));
+  const agg=f=>{const a=pins.filter(p=>f(ymd(new Date(p.created_at)))),c=r=>a.filter(p=>p.result===r).length,sold=c("Sold"),q=c("Quoted"),no=c("No"),talk=sold+q+no;return{doors:a.length,sold,q,rate:talk?Math.round(sold/talk*100):0}};
+  let st=0;const d=new Date();if(!days.has(ymd(d)))d.setDate(d.getDate()-1);while(days.has(ymd(d))){st++;d.setDate(d.getDate()-1)}
+  const row=(l,a)=>`<div class="kn"><span class="t">${l}</span><div><b>${a.doors}</b><small>doors</small></div><div><b>${a.sold}</b><small>sold</small></div><div><b>${a.q}</b><small>quoted</small></div><div><b>${a.rate}%</b><small>close</small></div></div>`;
+  el.hidden=false;el.innerHTML=`<div class="sec" style="margin:0 0 4px"><h3>Door knocking</h3><span class="sub">${st>1?st+"-day streak":"Keep it rolling"}</span></div>`+row("Today",agg(x=>x===T))+row("This week",agg(x=>x>=WK))}
+let wxBusy=false;
+const wxDay=k=>new Date(k+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
+async function wxGet(){
+  const c=lsGet(K("wx"),null);if(c&&Date.now()-c.t<3*36e5)return c;
+  let loc=lsGet(K("loc"),null);
+  if(!loc)loc=await new Promise(r=>{setTimeout(()=>r(null),10000);if(!navigator.geolocation)return r(null);navigator.geolocation.getCurrentPosition(p=>r({lat:+p.coords.latitude.toFixed(2),lng:+p.coords.longitude.toFixed(2)}),()=>r(null),{timeout:8000,maximumAge:864e5})});
+  if(!loc)return c;lsSet(K("loc"),loc);
+  const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+loc.lat+"&longitude="+loc.lng+"&daily=precipitation_probability_max,precipitation_sum&timezone=auto&forecast_days=7");
+  if(!r.ok)return c;const j=await r.json(),days={};
+  (j.daily.time||[]).forEach((d,i)=>days[d]={p:j.daily.precipitation_probability_max[i]||0,mm:j.daily.precipitation_sum[i]||0});
+  const o={t:Date.now(),days};lsSet(K("wx"),o);return o}
+function wxRender(){
+  const el=$("hwx");if(!el)return;const T=today(),wx=lsGet(K("wx"),null);
+  const jobs=customers.filter(c=>c.status==="Scheduled"&&c.job_date&&c.job_date>=T);
+  if(!wx||!jobs.length){el.innerHTML="";return}
+  const bad=Object.keys(wx.days).filter(d=>d>=T&&(wx.days[d].p>=50||wx.days[d].mm>=4)&&jobs.some(c=>c.job_date===d)).sort();
+  el.innerHTML=bad.map(d=>{const js=jobs.filter(c=>c.job_date===d).sort(byTime),tot=js.reduce((a,c)=>a+(+c.price||0),0);
+    return `<div class="card wxc"><span class="lb">Rain alert</span><div style="font-size:17px;margin-top:4px"><b>${wxDay(d)}</b> · ${wx.days[d].p}% chance</div><div class="sub">${js.length} job${js.length===1?"":"s"} · ${money(tot)} could get rained out</div>`
+     +js.map(c=>{const ph=phoneOfC(c),tm=splitNote(c.notes).time;return `<div class="wxr"><span>${tm?fmtT(tm)+" · ":""}${esc(c.name)}</span>${ph?`<a class="btn mini" href="${smsHref([ph],jobMsg("rain",c))}">Text to reschedule</a>`:`<button class="mini" data-edit="${c.id}">Edit</button>`}</div>`}).join("")+`</div>`}).join("")}
+async function wxUpdate(){
+  wxRender();
+  if(wxBusy||!navigator.onLine)return;
+  if(!customers.some(c=>c.status==="Scheduled"&&c.job_date&&c.job_date>=today()))return;
+  wxBusy=true;try{await wxGet()}catch(e){}wxBusy=false;wxRender()}
 $("tabH").onclick=e=>{const t=e.target,d=t.dataset;
   if(d.nx){nxI=(nxI+ +d.nx+nxN)%nxN;homeUI()}
   else if(d.d){calSel=d.d;homeUI()}
   else if(d.m){calM=new Date(calM.getFullYear(),calM.getMonth()+ +d.m,1);homeUI()}
+  else if(d.route){const js=customers.filter(c=>c.job_date===d.route&&c.address&&c.status!=="Paid").sort(byTime).map(c=>c.address);
+    if(js.length){const dest=js[js.length-1],wp=js.slice(0,-1);window.open("https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+encodeURIComponent(dest)+(wp.length?"&waypoints="+encodeURIComponent(wp.join("|")):""),"_blank")}}
   else if(d.share)shareJob(d.share);
   else if(d.edit)openForm(customers.find(r=>r.id===d.edit));
   else if(d.addday)openForm({job_date:d.addday,status:"Scheduled"});
@@ -979,7 +1001,8 @@ $("qd_cancel").onclick=()=>$("qdlg").close();
 $("qd_save").onclick=()=>{if(!$("qd_name").value.trim()){$("qd_name").focus();return}
   if(quickAdd($("qd_name").value,$("qd_phone").value,$("qd_addr").value))$("qdlg").close()};
 /* ---- Settings ---- */
-$("biz").onclick=()=>{$("semail").textContent=user?user.email:"";$("sdlg").showModal()};
+$("biz").onclick=()=>{$("semail").textContent=user?user.email:"";$("bizname").value=lsGet(K("bizname"),"")||"";$("sdlg").showModal()};
+$("bizname").oninput=()=>lsSet(K("bizname"),$("bizname").value.trim());
 $("sclose").onclick=()=>$("sdlg").close();
 $("editbiz").onclick=()=>{$("sdlg").close();openOb(true)};
 $("out").addEventListener("click",()=>$("sdlg").close());
