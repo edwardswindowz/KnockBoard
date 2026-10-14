@@ -194,8 +194,8 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <div id="tabM" hidden>
     <div class="row"><div style="flex:1;position:relative;min-width:0"><input id="maddr" placeholder="Type the address (street, city, state)" autocomplete="off" autocorrect="off" style="width:100%"><div id="msug" hidden></div></div><button id="mgo" class="btn pri">Go</button></div>
     <div id="mmap"></div>
-    <div class="sub" id="mmsg" style="margin-bottom:6px">Search an address, then tap around the area you want to measure. Drag a dot to fine-tune it.</div>
-    <div class="row"><button id="mdone" style="flex:1">Finish area</button><button id="mundo" style="flex:1">Undo point</button><button id="mclr" style="flex:1">Clear all</button></div>
+    <div class="sub" id="mmsg" style="margin-bottom:6px">Search an address, then tap around the area you want to measure. Drag a dot to fine-tune it. To subtract something (like a building inside a parking lot), outline it and tap Cut out.</div>
+    <div class="row"><button id="mdone" style="flex:1">Finish area</button><button id="mcut" style="flex:1;color:#ff6b6b">Cut out</button><button id="mundo" style="flex:1">Undo</button><button id="mclr" style="flex:1">Clear all</button></div>
     <div id="mres"></div>
     <div class="row" style="margin-top:6px;align-items:end"><div><label>Price per sq ft ($)</label><input id="mppf" type="number" step="0.01" inputmode="decimal" placeholder="0.15"></div><div><label>Quote</label><div id="mquote" style="font-size:26px;font-weight:800;color:var(--a)">$0</div></div></div>
     <button id="msave" class="btn pri" style="width:100%;margin-top:8px;padding:13px">Save to customer</button>
@@ -664,11 +664,11 @@ function mRedraw(skipMk){
 }
 function mList(){
   const el=$("mres");let tot=0,h="";
-  mAreas.forEach((a,i)=>{tot+=a.sqft;h+=`<div class="marow"><span>Area ${i+1}</span><b>${Math.round(a.sqft).toLocaleString()} sq ft</b><button data-del="${i}" style="padding:4px 10px">✕</button></div>`});
+  let na=0,nc=0;mAreas.forEach((a,i)=>{const nm=a.cut?"Cut out "+(++nc):"Area "+(++na);tot+=a.cut?-a.sqft:a.sqft;h+=`<div class="marow"${a.cut?' style="color:#ff6b6b"':''}><span>${nm}</span><b>${a.cut?"\u2212":""}${Math.round(a.sqft).toLocaleString()} sq ft</b><button data-del="${i}" style="padding:4px 10px">\u2715</button></div>`});
   const cs=mArea(mCur);
   if(mCur.length>=3){h+=`<div class="marow"><span>Drawing…</span><b>${Math.round(cs).toLocaleString()} sq ft</b></div>`}
   else if(mCur.length)h+=`<div class="marow"><span>Drawing… tap at least 3 points</span></div>`;
-  const all=tot+cs;
+  const all=Math.max(0,tot+cs);
   if(mAreas.length+((mCur.length>=3)?1:0)>0)h+=`<div class="marow" style="border-top:1px solid #333"><span><b>Total</b></span><b>${Math.round(all).toLocaleString()} sq ft</b></div>`;
   el.innerHTML=h;
   const ppf=parseFloat($("mppf").value)||0;
@@ -676,13 +676,16 @@ function mList(){
 }
 $("mres").onclick=e=>{const i=e.target.dataset.del;if(i==null)return;const a=mAreas.splice(+i,1)[0];mm.drawn.removeLayer(a.layer);mList()};
 $("mppf").oninput=()=>{try{localStorage.setItem("kb_ppf",$("mppf").value)}catch(e){}mList()};
-$("mdone").onclick=()=>{
+function mFinish(cut){
   if(mCur.length<3){$("mmsg").textContent="Tap at least 3 points around the area first.";return}
-  const layer=L.polygon(mCur,{color:"#22c55e",weight:3,fillOpacity:.3}).addTo(mm.drawn);
-  mAreas.push({sqft:mArea(mCur),layer});
+  if(cut&&!mAreas.some(a=>!a.cut)){$("mmsg").textContent="Finish an area first, then outline what to cut out of it.";return}
+  const layer=L.polygon(mCur,cut?{color:"#ef4444",weight:3,fillOpacity:.35,dashArray:"6 6"}:{color:"#22c55e",weight:3,fillOpacity:.3}).addTo(mm.drawn);
+  mAreas.push({sqft:mArea(mCur),layer,cut:!!cut});
   mCurMk.forEach(m=>mm.removeLayer(m));mCurMk=[];mCur=[];if(mCurLine){mm.removeLayer(mCurLine);mCurLine=null}
-  $("mmsg").textContent="Saved. Tap again to outline another area (house, driveway, patio…).";mList();
-};
+  $("mmsg").textContent=cut?"Cut out. Its size is subtracted from the total. Tap again to outline more.":"Saved. Tap again to outline another area (house, driveway, patio\u2026).";mList();
+}
+$("mdone").onclick=()=>mFinish(false);
+$("mcut").onclick=()=>mFinish(true);
 $("mundo").onclick=()=>{if(!mCur.length)return;mCur.pop();mm.removeLayer(mCurMk.pop());mRedraw()};
 $("mclr").onclick=()=>{
   if((mAreas.length||mCur.length)&&!confirm("Clear everything you've outlined?"))return;
@@ -746,11 +749,12 @@ function mhShow(g){
   $("mh_z").href="https://www.zillow.com/homes/"+encodeURIComponent(t.replace(/,/g,"").trim().replace(/\s+/g,"-"))+"_rb/"}
 const KIND={roofing:"Roof",pest:"Pest control",solar:"Solar",window:"Window cleaning",pressure:"Pressure washing",other:"Property"};
 const mKindNow=()=>KIND[(prof.niches&&prof.niches[0])||"other"]||"Property";
-function mTotals(){const tot=mAreas.reduce((a,x)=>a+x.sqft,0),cs=mCur.length>=3?mArea(mCur):0,sq=tot+cs,ppf=parseFloat($("mppf").value)||0;
-  return{sq:Math.round(sq),ppf,price:Math.round(sq*ppf),areas:mAreas.map(a=>Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
+function mTotals(){const tot=mAreas.reduce((a,x)=>a+(x.cut?-x.sqft:x.sqft),0),cs=mCur.length>=3?mArea(mCur):0,sq=Math.max(0,tot+cs),ppf=parseFloat($("mppf").value)||0;
+  return{sq:Math.round(sq),ppf,price:Math.round(sq*ppf),areas:mAreas.map(a=>(a.cut?-1:1)*Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
 function mhNote(){return ""}
+function mParts(a){let n=0,o="";a.forEach((x,i)=>{if(x<0)o+=" \u2212 Cut out "+Math.abs(x).toLocaleString()+" sq ft";else o+=(i?" + ":"")+"Area "+(++n)+" "+x.toLocaleString()+" sq ft"});return o}
 function mNote(t){const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
-  return "Measured "+d+" ("+mKindNow()+"): "+(t.areas.length>1?t.areas.map((a,i)=>"Area "+(i+1)+" "+a.toLocaleString()+" sq ft").join(" + ")+" = ":"")+t.sq.toLocaleString()+" sq ft"+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")+mhNote()}
+  return "Measured "+d+" ("+mKindNow()+"): "+(t.areas.length>1?mParts(t.areas)+" = ":"")+t.sq.toLocaleString()+" sq ft"+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")+mhNote()}
 $("msave").onclick=()=>{
   const t=mTotals();if(!t.sq){$("mmsg").textContent="Outline an area first, then save it.";return}
   $("msum").textContent=mKindNow()+" · "+t.sq.toLocaleString()+" sq ft"+(t.ppf?" · quote "+money(t.price):"");
