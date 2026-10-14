@@ -66,13 +66,15 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 .kmode #tabK{flex:1;min-height:0;display:flex;flex-direction:column}
 .kmode #map{flex:1;height:auto;min-height:0}
 .kmode #tabM{flex:1;min-height:0;display:flex;flex-direction:column}
-#mmap{height:46vh;border-radius:12px;border:1px solid var(--b,#2a2a2a);margin:8px 0}
+#mmap{height:56dvh;min-height:340px;border-radius:12px;border:1px solid var(--b,#2a2a2a);margin:8px 0}
 .kmode #mmap{flex:1;height:auto;min-height:120px}
 .mvx{width:34px;height:34px;display:flex;align-items:center;justify-content:center}.mvx::after{content:"";width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid #2b7fff;box-sizing:border-box}
 #mres{max-height:30vh;overflow-y:auto}
 .mt2{display:flex;gap:8px;margin:6px 0 2px}.mt2 button{flex:1;padding:11px 6px;border-radius:12px;font-weight:600}.mt2 button.on{background:var(--a);border-color:var(--a);color:#fff}
 .wxc{border-color:#3a5a99;background:#0c1626}.wxc .lb{color:#7db4ff}.wxr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #1d2a44;font-size:14px}.wxr span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kn{display:grid;grid-template-columns:62px repeat(4,1fr);gap:4px;align-items:center;text-align:center;padding:6px 0}.kn+.kn{border-top:1px solid var(--b)}.kn .t{text-align:left;font-size:13px;color:var(--m)}.kn b{display:block;font-size:19px;color:var(--a)}.kn small{display:block;font-size:11px;color:var(--m)}
+.hi img{width:100%;border-radius:12px;display:block;margin-top:6px;background:#111;min-height:120px;object-fit:cover}.hg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.hg div{background:#111;border:1px solid var(--b);border-radius:12px;padding:10px}.hg small{color:var(--m);display:block;font-size:12px;margin-bottom:2px}.hg b{font-size:17px}.hg .w2{grid-column:span 2}
+.wn{display:flex;align-items:center;gap:10px;margin-top:12px;background:#0c1220;border:1px solid #1d2a44;border-radius:12px;padding:10px 12px}.wn .t{flex:1;min-width:0}.wn input{width:96px;flex:none}
 .marow{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}.marow span{flex:1}.marow b{color:var(--a)}
 .calh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.calh b{font-size:16px}.calh button{padding:4px 12px;font-size:18px}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.cal .wd{text-align:center;font-size:11px;color:var(--m);padding:3px 0}
@@ -196,6 +198,15 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
     <div id="mres"></div>
     <div class="row" style="margin-top:6px;align-items:end"><div><label>Price per sq ft ($)</label><input id="mppf" type="number" step="0.01" inputmode="decimal" placeholder="0.15"></div><div><label>Quote</label><div id="mquote" style="font-size:26px;font-weight:800;color:var(--a)">$0</div></div></div>
     <button id="msave" class="btn pri" style="width:100%;margin-top:8px;padding:13px">Save to customer</button>
+    <div class="card hi" id="mhome" hidden style="margin-top:14px">
+      <div class="sec" style="margin:0 0 6px"><h3>The house</h3></div>
+      <div class="sub" id="mh_addr"></div>
+      <img id="mh_img" alt="Photo of the house" hidden>
+      <div class="sub" id="mh_imgnote" style="margin-top:4px"></div>
+      <button class="btn" id="mh_btn" style="width:100%;margin-top:10px">Get home details</button>
+      <div id="mh_info"></div>
+      <div class="wn"><div class="t"><label style="margin:0">Windows</label><div class="sub" id="mh_est">Get home details for an estimate, or type the real count.</div></div><input id="mh_win" type="number" inputmode="numeric" placeholder="Count"></div>
+    </div>
   </div>
 </div>
 <div class="fabs" id="fabs"><button class="btn" id="addq">⚡ Quick</button><button class="btn pri" id="add">+ New customer</button></div>
@@ -679,10 +690,12 @@ $("mclr").onclick=()=>{
   if((mAreas.length||mCur.length)&&!confirm("Clear everything you've outlined?"))return;
   mAreas=[];mm.drawn.clearLayers();mCurMk.forEach(m=>mm.removeLayer(m));mCurMk=[];mCur=[];if(mCurLine){mm.removeLayer(mCurLine);mCurLine=null}mList();
 };
+function mRcAddr(f){try{const c=f.context||[],g=t=>(c.find(x=>x.id.startsWith(t))||{}),st=((g("region").short_code||"").split("-")[1]||g("region").text||""),zip=g("postcode").text||"",city=g("place").text||"";
+  if((f.place_type||[])[0]==="address"&&f.address)return f.address+" "+f.text+", "+city+", "+st+" "+zip;}catch(e){}return f.place_name.replace(/,\s*United States$/,"")}
 async function mGeocode(q){
   try{
     const r=await fetch("https://api.mapbox.com/geocoding/v5/mapbox.places/"+encodeURIComponent(q)+".json?limit=1&country=us&access_token="+MAPBOX_TOKEN);
-    if(r.ok){const j=await r.json();const f=j.features&&j.features[0];if(f)return{lat:f.center[1],lng:f.center[0],name:f.place_name}}
+    if(r.ok){const j=await r.json();const f=j.features&&j.features[0];if(f)return{lat:f.center[1],lng:f.center[0],name:f.place_name,rc:mRcAddr(f)}}
   }catch(e){}
   const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q="+encodeURIComponent(q));
   const j=await r.json();if(j[0])return{lat:+j[0].lat,lng:+j[0].lon,name:j[0].display_name};
@@ -693,18 +706,49 @@ async function mSearch(){
   $("mmsg").textContent="Searching…";
   try{const g=await mGeocode(q);
     if(!g){$("mmsg").textContent="Couldn't find that address. Try adding the city and state.";return}
-    mAddr=g.name.replace(/,\s*United States$/,"");mm.setView([g.lat,g.lng],20);$("mmsg").textContent=g.name+" — tap around the area to measure.";$("maddr").blur();
+    mAddr=g.name.replace(/,\s*United States$/,"");mm.setView([g.lat,g.lng],20);mhShow(g);$("mmsg").textContent=g.name+" — tap around the area to measure.";$("maddr").blur();
   }catch(e){$("mmsg").textContent="Search needs internet. Check your connection and try again."}
 }
 $("mgo").onclick=mSearch;$("maddr").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();mSearch()}};
 
-let mAddr="";
+let mAddr="",mhG=null,mhData=null;
+const GMAPS_KEY=""; // Google Maps key for Street View photos (restricted to knockboard.org in Google Cloud)
+const mhBear=(a,b)=>{const r=x=>x*Math.PI/180,y=Math.sin(r(b.lng-a.lng))*Math.cos(r(b.lat)),x=Math.cos(r(a.lat))*Math.sin(r(b.lat))-Math.sin(r(a.lat))*Math.cos(r(b.lat))*Math.cos(r(b.lng-a.lng));return Math.round((Math.atan2(y,x)*180/Math.PI+360)%360)};
+const mhMoney=n=>n||n===0?"$"+Math.round(n).toLocaleString():"—";
+function mhShow(g){
+  mhG=g;mhData=null;$("mhome").hidden=false;$("mh_addr").textContent=g.name.replace(/,\s*United States$/,"");$("mh_info").innerHTML="";$("mh_btn").hidden=false;$("mh_btn").disabled=false;
+  $("mh_win").value="";$("mh_est").textContent="Get home details for an estimate, or type the real count.";mhPhoto(g)}
+async function mhPhoto(g){
+  const im=$("mh_img"),note=$("mh_imgnote");im.hidden=true;note.textContent="";
+  const sat=()=>{im.onerror=null;im.src="https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/"+g.lng+","+g.lat+",19,0/640x400@2x?access_token="+MAPBOX_TOKEN;im.hidden=false;note.textContent="Satellite view (no street photo available for this address)"};
+  if(GMAPS_KEY){
+    try{const m=await(await fetch("https://maps.googleapis.com/maps/api/streetview/metadata?location="+g.lat+","+g.lng+"&radius=60&source=outdoor&key="+GMAPS_KEY)).json();
+      if(m.status==="OK"){im.onerror=sat;im.src="https://maps.googleapis.com/maps/api/streetview?size=640x400&scale=2&location="+m.location.lat+","+m.location.lng+"&heading="+mhBear(m.location,g)+"&fov=75&pitch=8&key="+GMAPS_KEY;im.hidden=false;note.textContent="Street View photo (can be a few years old)";return}}catch(e){}
+  }
+  sat()}
+$("mh_btn").onclick=async()=>{
+  const b=$("mh_btn"),addr=(mhG&&mhG.rc)||mAddr||$("maddr").value.trim();if(!addr)return;
+  b.disabled=true;b.textContent="Looking up…";
+  try{const {data,error}=await sb.functions.invoke("home-info",{body:{address:addr}});
+    if(error||!data||data.error){let st=0;try{st=error&&error.context&&error.context.status}catch(e){}
+      $("mh_info").innerHTML=`<div class="sub" style="margin-top:8px">${st===404||(data&&data.error==="not_found")?"No public records found for that address.":"Couldn't load home details right now. Check your connection and try again."}</div>`;b.disabled=false;b.textContent="Try again";return}
+    mhData=data;const p=data.property||{},v=data.value||{};
+    const cells=[["Estimated value",v.price?mhMoney(v.price)+(v.low&&v.high?`<small style="margin:2px 0 0">${mhMoney(v.low)} – ${mhMoney(v.high)}</small>`:""):"—","w2"],["Bedrooms",p.beds??"—"],["Bathrooms",p.baths??"—"],["Square feet",p.sqft?p.sqft.toLocaleString():"—"],["Year built",p.year||"—"],["Stories",p.stories||"—"],["Lot size",p.lot?p.lot.toLocaleString()+" sq ft":"—"],["Last sold",p.lastSalePrice?mhMoney(p.lastSalePrice)+(p.lastSaleDate?`<small style="margin:2px 0 0">${new Date(p.lastSaleDate).toLocaleDateString("en-US",{month:"short",year:"numeric",timeZone:"UTC"})}</small>`:""):"—"],["Roof",p.roof||"—"],["Exterior",p.exterior||"—"]];
+    $("mh_info").innerHTML=`<div class="hg">`+cells.map(c=>`<div class="${c[2]||""}"><small>${c[0]}</small><b>${c[1]}</b></div>`).join("")+`</div><div class="sub" style="margin-top:6px">Public records and an automated estimate, not an appraisal.</div>`;
+    if(p.sqft){const est=Math.round(p.sqft/90);$("mh_est").innerHTML=`Estimate: about <b>${Math.round(est*.8)}–${Math.round(est*1.2)}</b> windows, based on home size. Count the real number and type it here. <a href="#" id="mh_use" style="color:var(--a)">Use ${est}</a>`;$("mh_use").onclick=e=>{e.preventDefault();$("mh_win").value=est}}
+    b.hidden=true;
+  }catch(e){$("mh_info").innerHTML=`<div class="sub" style="margin-top:8px">Couldn't load home details right now. Check your connection and try again.</div>`;b.disabled=false;b.textContent="Try again"}
+};
 const KIND={roofing:"Roof",pest:"Pest control",solar:"Solar",window:"Window cleaning",pressure:"Pressure washing",other:"Property"};
 const mKindNow=()=>KIND[(prof.niches&&prof.niches[0])||"other"]||"Property";
 function mTotals(){const tot=mAreas.reduce((a,x)=>a+x.sqft,0),cs=mCur.length>=3?mArea(mCur):0,sq=tot+cs,ppf=parseFloat($("mppf").value)||0;
   return{sq:Math.round(sq),ppf,price:Math.round(sq*ppf),areas:mAreas.map(a=>Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
+function mhNote(){const p=(mhData&&mhData.property)||{},v=(mhData&&mhData.value)||{},w=parseInt($("mh_win").value)||0,a=[];
+  if(p.beds||p.baths||p.sqft)a.push([p.beds?p.beds+" bd":"",p.baths?p.baths+" ba":"",p.sqft?p.sqft.toLocaleString()+" sq ft home":""].filter(Boolean).join(" / "));
+  if(p.year)a.push("built "+p.year);if(v.price)a.push("est. value "+mhMoney(v.price));if(w)a.push(w+" windows");
+  return a.length?" · "+a.join(" · "):""}
 function mNote(t){const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
-  return "Measured "+d+" ("+mKindNow()+"): "+(t.areas.length>1?t.areas.map((a,i)=>"Area "+(i+1)+" "+a.toLocaleString()+" sq ft").join(" + ")+" = ":"")+t.sq.toLocaleString()+" sq ft"+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")}
+  return "Measured "+d+" ("+mKindNow()+"): "+(t.areas.length>1?t.areas.map((a,i)=>"Area "+(i+1)+" "+a.toLocaleString()+" sq ft").join(" + ")+" = ":"")+t.sq.toLocaleString()+" sq ft"+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")+mhNote()}
 $("msave").onclick=()=>{
   const t=mTotals();if(!t.sq){$("mmsg").textContent="Outline an area first, then save it.";return}
   $("msum").textContent=mKindNow()+" · "+t.sq.toLocaleString()+" sq ft"+(t.ppf?" · quote "+money(t.price):"");
@@ -1011,7 +1055,7 @@ $("out").addEventListener("click",()=>$("sdlg").close());
 document.querySelector(".tabs").onclick=e=>{
   const t=e.target.dataset.tab;if(!t)return;
   document.querySelectorAll(".tabs .chip").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
-  document.body.classList.toggle("kmode",t==="K"||t==="M");
+  document.body.classList.toggle("kmode",t==="K");
   $("tabH").hidden=t!=="H";$("tabC").hidden=t!=="C";$("tabQ").hidden=t!=="Q";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("tabP").hidden=t!=="P";$("fabs").hidden=!(t==="C"||t==="H");
   if(t==="K")initMap();if(t==="M")mInit();if(t==="P")calcInit();
 };
