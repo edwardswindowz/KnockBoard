@@ -591,7 +591,7 @@ function openPin(p){
   $("pt").textContent=p.id?"Update this house":"New house";
   $("p_name").value=p.name||"";$("p_phone").value=p.phone||"";$("p_price").value=p.price||"";$("p_svc").value=p.service||"";pLI.init(p,null);
   $("p_date").value=d?d.toLocaleDateString("en-CA"):"";$("p_time").value=d?d.toTimeString().slice(0,5):"";
-  $("pform").hidden=!["Sold","Quoted"].includes(p.result);$("pform").classList.remove("qmode");$("pchoice").hidden=true;document.querySelector("#pdlg .kbs").hidden=false;$("p_addr").value="";setF(p.result);$("prem").hidden=!p.id;$("pdlg").showModal();
+  $("pform").hidden=!["Sold","Quoted"].includes(p.result);$("pform").classList.remove("qmode");$("pchoice").hidden=true;document.querySelector("#pdlg .kbs").hidden=false;$("p_addr").value=(p.name&&(customers.find(c=>c.name===p.name&&(c.phone||"")===(p.phone||""))||{}).address)||"";setF(p.result);if(["Sold","Quoted"].includes(p.result)&&!$("p_addr").value)revGeo();$("prem").hidden=!p.id;$("pdlg").showModal();
 }
 function savePin({dt,tm,addr,items,...o}){
   const row={lat:cur.lat,lng:cur.lng,...o};
@@ -600,21 +600,22 @@ function savePin({dt,tm,addr,items,...o}){
     const q=o.result==="Quoted",ex=customers.find(c=>c.name===o.name&&(c.phone||"")===(o.phone||"")),
       d={name:o.name,phone:o.phone,address:addr||"",service:o.service,status:q?"Quoted":"Scheduled",price:o.price||0,source:"Door knock",job_date:q?null:(dt||null),follow_up:q?(dt||null):null,notes:((tm?"Time: "+tm+"\n":"")+(items||"")).trim()||null};
     if(!ex)mutate("ins","customers",newId(),d);
-    else if(!q&&["Lead","Quoted"].includes(ex.status))mutate("upd","customers",ex.id,{status:"Scheduled",price:d.price,job_date:d.job_date,service:d.service});
+    else if(addr&&!ex.address)mutate("upd","customers",ex.id,{address:addr});
+    if(ex&&!q&&["Lead","Quoted"].includes(ex.status))mutate("upd","customers",ex.id,{status:"Scheduled",price:d.price,job_date:d.job_date,service:d.service});
   }
   $("pdlg").close();
 }
 document.querySelectorAll("#pdlg .kb").forEach(b=>b.onclick=()=>{
   const r=b.dataset.r;
   if(r==="Sold"&&!cur.id){cur={...cur,result:"Sold"};document.querySelector("#pdlg .kbs").hidden=true;$("pchoice").hidden=false;revGeo()}
-  else if(r==="Sold"||r==="Quoted"){cur={...cur,result:r};$("pform").hidden=false;setF(r)}else savePin({result:r})});
+  else if(r==="Sold"||r==="Quoted"){cur={...cur,result:r};$("pform").hidden=false;setF(r);if(!$("p_addr").value)revGeo()}else savePin({result:r})});
 $("pc_quick").onclick=()=>{$("pchoice").hidden=true;$("pform").classList.add("qmode");$("pform").hidden=false;$("p_save").textContent="Save customer";$("p_name").focus()};
 $("pc_full").onclick=()=>{$("pchoice").hidden=true;$("pform").classList.remove("qmode");$("pform").hidden=false;setF("Sold")};
 $("pc_skip").onclick=()=>savePin({result:"Sold"});
 async function revGeo(){
   try{if(!MAPBOX_TOKEN.startsWith("pk.")||!cur||cur.lat==null)return;
-    const r=await fetch("https://api.mapbox.com/geocoding/v5/mapbox.places/"+cur.lng+","+cur.lat+".json?types=address&limit=1&access_token="+MAPBOX_TOKEN);
-    if(!r.ok)return;const j=await r.json(),f=j.features&&j.features[0];
+    const g=async t=>{const r=await fetch("https://api.mapbox.com/geocoding/v5/mapbox.places/"+cur.lng+","+cur.lat+".json?limit=1"+t+"&access_token="+MAPBOX_TOKEN);if(!r.ok)return null;const j=await r.json();return j.features&&j.features[0]};
+    const f=(await g("&types=address"))||(await g("&types=address,poi"));
     if(f&&!$("p_addr").value)$("p_addr").value=f.place_name.replace(/,\s*United States$/,"");
   }catch(e){}
 }
