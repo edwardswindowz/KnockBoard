@@ -70,6 +70,9 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 .kmode #mmap{flex:1;height:auto;min-height:120px}
 .mvx{width:34px;height:34px;display:flex;align-items:center;justify-content:center}.mvx::after{content:"";width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid #2b7fff;box-sizing:border-box}
 #mres{max-height:30vh;overflow-y:auto}
+.mtypes{display:flex;gap:8px;margin:2px 0 8px}.mtypes button{flex:1;padding:11px 6px;border-radius:12px;background:#111;border:1px solid var(--b);color:#bbb;font-size:13px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:5px}.mtypes button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.mtypes button.on{background:var(--a);border-color:var(--a);color:#fff}
+.mpanel{background:#0c1220;border:1px solid #1d2a44;border-radius:14px;padding:4px 14px;margin:10px 0}.mpr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #1b2538;font-size:15px}.mpr:last-child{border:none}.mpr span{color:#cbd5e6}.mpr b{font-size:16px}.mpr select{width:auto;min-width:110px;padding:6px 10px;min-height:0}.mst{display:flex;gap:6px}.mst button{width:38px;height:34px;padding:0;border-radius:9px}.mst button.on{background:var(--a);border-color:var(--a);color:#fff}
+.mlbl{background:#2b7fff!important;color:#fff!important;border:none!important;border-radius:8px!important;font-weight:700;font-size:13px;padding:3px 8px!important;box-shadow:0 2px 8px #0008!important}.mlbl::before{display:none!important}
 .marow{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}.marow span{flex:1}.marow b{color:var(--a)}
 .calh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.calh b{font-size:16px}.calh button{padding:4px 12px;font-size:18px}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.cal .wd{text-align:center;font-size:11px;color:var(--m);padding:3px 0}
@@ -187,8 +190,20 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
     <div class="row"><input id="maddr" placeholder="Type the address (street, city, state)" style="flex:1"><button id="mgo" class="btn pri">Go</button></div>
     <div id="mmap"></div>
     <div class="sub" id="mmsg" style="margin-bottom:6px">Search an address, then tap around the area you want to measure. Drag a dot to fine-tune it.</div>
+    <div class="mtypes" id="mtypes">
+      <button data-t="roof" class="on"><svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8M6 10v10h12V10"/></svg>Roof</button>
+      <button data-t="drive"><svg viewBox="0 0 24 24"><path d="M8 3L5 21M16 3l3 18M12 4v3M12 11v3M12 18v3"/></svg>Driveway</button>
+      <button data-t="prop"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10"/></svg>Property</button>
+    </div>
     <div class="row"><button id="mdone" style="flex:1">Finish area</button><button id="mundo" style="flex:1">Undo point</button><button id="mclr" style="flex:1">Clear all</button></div>
     <div id="mres"></div>
+    <div class="mpanel" id="mpanel">
+      <div class="mpr"><span>Area</span><b id="mp_area">0 sq ft</b></div>
+      <div class="mpr"><span>Perimeter</span><b id="mp_per">0 ft</b></div>
+      <div class="mpr"><span>Roof pitch</span><select id="mpitch"><option value="0">Flat / none</option><option value="3">3/12</option><option value="4">4/12</option><option value="5">5/12</option><option value="6">6/12</option><option value="7">7/12</option><option value="8">8/12</option><option value="9">9/12</option><option value="10">10/12</option><option value="12">12/12</option></select></div>
+      <div class="mpr"><span>Stories</span><div class="mst" id="mstories"><button data-s="1" class="on">1</button><button data-s="2">2</button><button data-s="3">3</button></div></div>
+      <div class="mpr" id="mp_sr" hidden><span>Roof surface (with pitch)</span><b id="mp_surf"></b></div>
+    </div>
     <div class="row" style="margin-top:6px;align-items:end"><div><label>Price per sq ft ($)</label><input id="mppf" type="number" step="0.01" inputmode="decimal" placeholder="0.15"></div><div><label>Quote</label><div id="mquote" style="font-size:26px;font-weight:800;color:var(--a)">$0</div></div></div>
     <button id="msave" class="btn pri" style="width:100%;margin-top:8px;padding:13px">Save to customer</button>
   </div>
@@ -643,27 +658,38 @@ function mAddMk(ll){
 }
 function mRedraw(skipMk){
   if(mCurLine){mm.removeLayer(mCurLine);mCurLine=null}
-  if(mCur.length>1)mCurLine=(mCur.length>2?L.polygon:L.polyline)(mCur,{color:"#2b7fff",weight:3,fillOpacity:.25}).addTo(mm);
+  if(mCur.length>1){mCurLine=(mCur.length>2?L.polygon:L.polyline)(mCur,{color:MC[mType],weight:3,fillOpacity:.25}).addTo(mm);
+    if(mCur.length>2)mCurLine.bindTooltip(Math.round(mArea(mCur)).toLocaleString()+" sq ft",{permanent:true,direction:"center",className:"mlbl"})}
   mList();
 }
+const MC={roof:"#2b7fff",drive:"#7db4ff",prop:"#22c55e"},MT={roof:"Roof",drive:"Driveway",prop:"Property"};
+let mType="roof",mStories=1;
+const mSlope=()=>{const p=parseFloat($("mpitch").value)||0;return Math.sqrt(1+(p/12)*(p/12))};
+const mEff=a=>a.type==="roof"?a.sqft*mSlope():a.sqft;
 function mList(){
   const el=$("mres");let tot=0,h="";
-  mAreas.forEach((a,i)=>{tot+=a.sqft;h+=`<div class="marow"><span>Area ${i+1}</span><b>${Math.round(a.sqft).toLocaleString()} sq ft</b><button data-del="${i}" style="padding:4px 10px">✕</button></div>`});
+  mAreas.forEach((a,i)=>{tot+=a.sqft;h+=`<div class="marow"><span>${MT[a.type]} ${i+1}</span><b>${Math.round(a.sqft).toLocaleString()} sq ft</b><button data-del="${i}" style="padding:4px 10px">✕</button></div>`});
   const cs=mArea(mCur);
-  if(mCur.length>=3){h+=`<div class="marow"><span>Drawing…</span><b>${Math.round(cs).toLocaleString()} sq ft</b></div>`}
+  if(mCur.length>=3){h+=`<div class="marow"><span>Drawing ${MT[mType].toLowerCase()}…</span><b>${Math.round(cs).toLocaleString()} sq ft</b></div>`}
   else if(mCur.length)h+=`<div class="marow"><span>Drawing… tap at least 3 points</span></div>`;
   const all=tot+cs;
-  if(mAreas.length+((mCur.length>=3)?1:0)>0)h+=`<div class="marow" style="border-top:1px solid #333"><span><b>Total</b></span><b>${Math.round(all).toLocaleString()} sq ft</b></div>`;
   el.innerHTML=h;
-  const ppf=parseFloat($("mppf").value)||0;
-  $("mquote").textContent="$"+(all*ppf).toLocaleString(undefined,{maximumFractionDigits:0});
+  const t=mTotals();
+  $("mp_area").textContent=t.raw.toLocaleString()+" sq ft";
+  $("mp_per").textContent=t.per.toLocaleString()+" ft";
+  $("mp_sr").hidden=!(t.hasRoof&&mSlope()>1);$("mp_surf").textContent=Math.round(t.roofSurf).toLocaleString()+" sq ft";
+  $("mquote").textContent="$"+t.price.toLocaleString();
 }
+$("mtypes").onclick=e=>{const b=e.target.closest("button");if(!b)return;mType=b.dataset.t;[...$("mtypes").children].forEach(x=>x.classList.toggle("on",x===b));mRedraw()};
+$("mstories").onclick=e=>{const b=e.target.closest("button");if(!b)return;mStories=+b.dataset.s;[...$("mstories").children].forEach(x=>x.classList.toggle("on",x===b))};
+$("mpitch").onchange=mList;
 $("mres").onclick=e=>{const i=e.target.dataset.del;if(i==null)return;const a=mAreas.splice(+i,1)[0];mm.drawn.removeLayer(a.layer);mList()};
 $("mppf").oninput=()=>{try{localStorage.setItem("kb_ppf",$("mppf").value)}catch(e){}mList()};
 $("mdone").onclick=()=>{
   if(mCur.length<3){$("mmsg").textContent="Tap at least 3 points around the area first.";return}
-  const layer=L.polygon(mCur,{color:"#22c55e",weight:3,fillOpacity:.3}).addTo(mm.drawn);
-  mAreas.push({sqft:mArea(mCur),layer});
+  const sq=mArea(mCur),layer=L.polygon(mCur,{color:MC[mType],weight:3,fillOpacity:.3}).addTo(mm.drawn);
+  layer.bindTooltip(Math.round(sq).toLocaleString()+" sq ft",{permanent:true,direction:"center",className:"mlbl"});
+  mAreas.push({sqft:sq,per:mPerim(mCur,true),type:mType,layer});
   mCurMk.forEach(m=>mm.removeLayer(m));mCurMk=[];mCur=[];if(mCurLine){mm.removeLayer(mCurLine);mCurLine=null}
   $("mmsg").textContent="Saved. Tap again to outline another area (house, driveway, patio…).";mList();
 };
@@ -692,10 +718,14 @@ async function mSearch(){
 $("mgo").onclick=mSearch;$("maddr").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();mSearch()}};
 
 let mAddr="";
-function mTotals(){const tot=mAreas.reduce((a,x)=>a+x.sqft,0),cs=mCur.length>=3?mArea(mCur):0,sq=tot+cs,ppf=parseFloat($("mppf").value)||0;
-  return{sq:Math.round(sq),ppf,price:Math.round(sq*ppf),areas:mAreas.map(a=>Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
-function mNote(t){const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
-  return "Measured "+d+": "+(t.areas.length>1?t.areas.map((a,i)=>"Area "+(i+1)+" "+a.toLocaleString()+" sq ft").join(" + ")+" = ":"")+t.sq.toLocaleString()+" sq ft"+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")}
+function mTotals(){
+  const cs=mCur.length>=3?{sqft:mArea(mCur),per:mPerim(mCur,true),type:mType}:null,list=mAreas.concat(cs?[cs]:[]),
+    raw=list.reduce((a,x)=>a+x.sqft,0),eff=list.reduce((a,x)=>a+mEff(x),0),per=list.reduce((a,x)=>a+(x.per||0),0),
+    roofSurf=list.filter(x=>x.type==="roof").reduce((a,x)=>a+mEff(x),0),ppf=parseFloat($("mppf").value)||0;
+  return{raw:Math.round(raw),sq:Math.round(eff),per:Math.round(per),roofSurf,hasRoof:list.some(x=>x.type==="roof"),ppf,price:Math.round(eff*ppf),
+    areas:list.map(a=>[MT[a.type],Math.round(a.sqft)])}}
+function mNote(t){const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),pt=parseFloat($("mpitch").value)||0;
+  return "Measured "+d+": "+t.areas.map(a=>a[0]+" "+a[1].toLocaleString()+" sq ft").join(" + ")+" · perimeter "+t.per.toLocaleString()+" ft"+(pt?" · pitch "+pt+"/12":"")+" · "+mStories+" stor"+(mStories===1?"y":"ies")+(pt&&t.hasRoof?" · roof surface "+Math.round(t.roofSurf).toLocaleString()+" sq ft":"")+(t.ppf?" · "+t.sq.toLocaleString()+" sq ft × $"+t.ppf+"/sq ft = "+money(t.price):"")}
 $("msave").onclick=()=>{
   const t=mTotals();if(!t.sq){$("mmsg").textContent="Outline an area first, then save it.";return}
   $("msum").textContent=t.sq.toLocaleString()+" sq ft"+(t.ppf?" · quote "+money(t.price):"");
