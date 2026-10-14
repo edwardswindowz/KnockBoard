@@ -73,6 +73,7 @@ body.kmode{position:fixed;inset:0;overflow:hidden}
 .mt2{display:flex;gap:8px;margin:6px 0 2px}.mt2 button{flex:1;padding:11px 6px;border-radius:12px;font-weight:600}.mt2 button.on{background:var(--a);border-color:var(--a);color:#fff}
 .wxc{border-color:#3a5a99;background:#0c1626}.wxc .lb{color:#7db4ff}.wxr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #1d2a44;font-size:14px}.wxr span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kn{display:grid;grid-template-columns:62px repeat(4,1fr);gap:4px;align-items:center;text-align:center;padding:6px 0}.kn+.kn{border-top:1px solid var(--b)}.kn .t{text-align:left;font-size:13px;color:var(--m)}.kn b{display:block;font-size:19px;color:var(--a)}.kn small{display:block;font-size:11px;color:var(--m)}
+#msug{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:#14161a;border:1px solid var(--b);border-radius:12px;z-index:1200;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.6)}#msug .si{padding:11px 14px;border-top:1px solid var(--b);cursor:pointer;line-height:1.25}#msug .si:first-child{border-top:0}#msug .si:active{background:#1e2530}#msug .si b{display:block;font-size:15px;font-weight:600}#msug .si span{display:block;font-size:12.5px;color:var(--m);margin-top:1px}#msug .sh{padding:8px 14px 4px;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--m)}
 .hi img{width:100%;border-radius:12px;display:block;margin-top:6px;background:#111;min-height:120px;object-fit:cover}.hg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.hg div{background:#111;border:1px solid var(--b);border-radius:12px;padding:10px}.hg small{color:var(--m);display:block;font-size:12px;margin-bottom:2px}.hg b{font-size:17px}.hg .w2{grid-column:span 2}
 .wn{display:flex;align-items:center;gap:10px;margin-top:12px;background:#0c1220;border:1px solid #1d2a44;border-radius:12px;padding:10px 12px}.wn .t{flex:1;min-width:0}.wn input{width:96px;flex:none}
 .marow{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}.marow span{flex:1}.marow b{color:var(--a)}
@@ -191,7 +192,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
     <div id="calc"></div>
   </div>
   <div id="tabM" hidden>
-    <div class="row"><input id="maddr" placeholder="Type the address (street, city, state)" style="flex:1"><button id="mgo" class="btn pri">Go</button></div>
+    <div class="row"><div style="flex:1;position:relative;min-width:0"><input id="maddr" placeholder="Type the address (street, city, state)" autocomplete="off" autocorrect="off" style="width:100%"><div id="msug" hidden></div></div><button id="mgo" class="btn pri">Go</button></div>
     <div id="mmap"></div>
     <div class="sub" id="mmsg" style="margin-bottom:6px">Search an address, then tap around the area you want to measure. Drag a dot to fine-tune it.</div>
     <div class="row"><button id="mdone" style="flex:1">Finish area</button><button id="mundo" style="flex:1">Undo point</button><button id="mclr" style="flex:1">Clear all</button></div>
@@ -201,11 +202,8 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
     <div class="card hi" id="mhome" hidden style="margin-top:14px">
       <div class="sec" style="margin:0 0 6px"><h3>The house</h3></div>
       <div class="sub" id="mh_addr"></div>
-      <img id="mh_img" alt="Photo of the house" hidden>
-      <div class="sub" id="mh_imgnote" style="margin-top:4px"></div>
-      <button class="btn" id="mh_btn" style="width:100%;margin-top:10px">Get home details</button>
-      <div id="mh_info"></div>
-      <div class="wn"><div class="t"><label style="margin:0">Windows</label><div class="sub" id="mh_est">Get home details for an estimate, or type the real count.</div></div><input id="mh_win" type="number" inputmode="numeric" placeholder="Count"></div>
+      <a class="btn pri" id="mh_z" href="#" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:10px;padding:13px">Show on Zillow</a>
+      <div class="sub" style="margin-top:6px">Opens this address on Zillow: photos, Zestimate, beds, baths and more.</div>
     </div>
   </div>
 </div>
@@ -701,52 +699,56 @@ async function mGeocode(q){
   const j=await r.json();if(j[0])return{lat:+j[0].lat,lng:+j[0].lon,name:j[0].display_name};
   return null;
 }
+const mRecent=()=>{try{return JSON.parse(localStorage.getItem(K("mrecent"))||"[]")}catch(e){return[]}};
+function mRecentAdd(g){try{const n=g.name.replace(/,\s*United States$/,""),l=mRecent().filter(x=>x.name!==n);l.unshift({name:n,lat:g.lat,lng:g.lng,rc:g.rc});localStorage.setItem(K("mrecent"),JSON.stringify(l.slice(0,8)))}catch(e){}}
+function mFeat(f){return{lat:f.center[1],lng:f.center[0],name:f.place_name,rc:mRcAddr(f)}}
+async function mGo(g){
+  mAddr=g.name.replace(/,\s*United States$/,"");mm.setView([g.lat,g.lng],20);mhShow(g);mRecentAdd(g);$("mmsg").textContent=g.name+" \u2014 tap around the area to measure.";$("maddr").blur();mSugHide()}
 async function mSearch(){
   const q=$("maddr").value.trim();if(!q)return;
-  $("mmsg").textContent="Searching…";
+  mSugHide();$("mmsg").textContent="Searching\u2026";
   try{const g=await mGeocode(q);
     if(!g){$("mmsg").textContent="Couldn't find that address. Try adding the city and state.";return}
-    mAddr=g.name.replace(/,\s*United States$/,"");mm.setView([g.lat,g.lng],20);mhShow(g);$("mmsg").textContent=g.name+" — tap around the area to measure.";$("maddr").blur();
+    mGo(g);
   }catch(e){$("mmsg").textContent="Search needs internet. Check your connection and try again."}
 }
+let mSugT=null,mSugQ=0;
+const mSugHide=()=>{const d=$("msug");d.hidden=true;d.innerHTML=""};
+function mSugDraw(items,head){
+  const d=$("msug");if(!items.length){mSugHide();return}
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  d.innerHTML=(head?`<div class="sh">${head}</div>`:"")+items.map((g,i)=>{const n=g.name.replace(/,\s*United States$/,""),k=n.indexOf(",");return`<div class="si" data-i="${i}"><b>${esc(k>0?n.slice(0,k):n)}</b><span>${esc(k>0?n.slice(k+1).trim():"")}</span></div>`}).join("");
+  d.hidden=false;
+  d.querySelectorAll(".si").forEach(el=>{el.addEventListener("pointerdown",e=>{e.preventDefault();$("maddr").value=items[+el.dataset.i].name.replace(/,\s*United States$/,"");mGo(items[+el.dataset.i])})})}
+async function mSugUpdate(){
+  const q=$("maddr").value.trim(),rec=mRecent();
+  if(q.length<3){mSugDraw(rec.slice(0,5),rec.length?"Recent searches":"");return}
+  const my=++mSugQ,ql=q.toLowerCase(),recM=rec.filter(r=>r.name.toLowerCase().includes(ql)).slice(0,2);
+  mSugDraw(recM,recM.length?"Recent searches":"");
+  try{let prox="";try{if(mm&&mm.getZoom()>6){const c=mm.getCenter();prox="&proximity="+c.lng+","+c.lat}}catch(e){}
+    const r=await fetch("https://api.mapbox.com/geocoding/v5/mapbox.places/"+encodeURIComponent(q)+".json?autocomplete=true&limit=5&country=us&types=address,poi,place"+prox+"&access_token="+MAPBOX_TOKEN);
+    if(!r.ok||my!==mSugQ)return;const j=await r.json();if(my!==mSugQ||document.activeElement!==$("maddr"))return;
+    const seen=new Set(recM.map(x=>x.name)),fs=(j.features||[]).map(mFeat).filter(g=>!seen.has(g.name.replace(/,\s*United States$/,""))&&!seen.has(g.name));
+    const all=recM.concat(fs);if(!all.length){mSugHide();return}
+    const d=$("msug"),esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+    d.innerHTML=(recM.length?`<div class="sh">Recent searches</div>`:"")+all.map((g,i)=>{const n=g.name.replace(/,\s*United States$/,""),k=n.indexOf(",");return`<div class="si" data-i="${i}"><b>${esc(k>0?n.slice(0,k):n)}</b><span>${esc(k>0?n.slice(k+1).trim():"")}</span></div>`}).join("");d.hidden=false;
+    d.querySelectorAll(".si").forEach(el=>{el.addEventListener("pointerdown",e=>{e.preventDefault();const g=all[+el.dataset.i];$("maddr").value=g.name.replace(/,\s*United States$/,"");mGo(g)})})
+  }catch(e){}}
+$("maddr").addEventListener("input",()=>{clearTimeout(mSugT);mSugT=setTimeout(mSugUpdate,220)});
+$("maddr").addEventListener("focus",()=>{mSugUpdate()});
+$("maddr").addEventListener("blur",()=>setTimeout(mSugHide,150));
 $("mgo").onclick=mSearch;$("maddr").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();mSearch()}};
 
-let mAddr="",mhG=null,mhData=null;
-const GMAPS_KEY=""; // Google Maps key for Street View photos (restricted to knockboard.org in Google Cloud)
-const mhBear=(a,b)=>{const r=x=>x*Math.PI/180,y=Math.sin(r(b.lng-a.lng))*Math.cos(r(b.lat)),x=Math.cos(r(a.lat))*Math.sin(r(b.lat))-Math.sin(r(a.lat))*Math.cos(r(b.lat))*Math.cos(r(b.lng-a.lng));return Math.round((Math.atan2(y,x)*180/Math.PI+360)%360)};
-const mhMoney=n=>n||n===0?"$"+Math.round(n).toLocaleString():"—";
+let mAddr="";
 function mhShow(g){
-  mhG=g;mhData=null;$("mhome").hidden=false;$("mh_addr").textContent=g.name.replace(/,\s*United States$/,"");$("mh_info").innerHTML="";$("mh_btn").hidden=false;$("mh_btn").disabled=false;
-  $("mh_win").value="";$("mh_est").textContent="Get home details for an estimate, or type the real count.";mhPhoto(g)}
-async function mhPhoto(g){
-  const im=$("mh_img"),note=$("mh_imgnote");im.hidden=true;note.textContent="";
-  const sat=()=>{im.onerror=null;im.src="https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/"+g.lng+","+g.lat+",19,0/640x400@2x?access_token="+MAPBOX_TOKEN;im.hidden=false;note.textContent="Satellite view (no street photo available for this address)"};
-  if(GMAPS_KEY){
-    try{const m=await(await fetch("https://maps.googleapis.com/maps/api/streetview/metadata?location="+g.lat+","+g.lng+"&radius=60&source=outdoor&key="+GMAPS_KEY)).json();
-      if(m.status==="OK"){im.onerror=sat;im.src="https://maps.googleapis.com/maps/api/streetview?size=640x400&scale=2&location="+m.location.lat+","+m.location.lng+"&heading="+mhBear(m.location,g)+"&fov=75&pitch=8&key="+GMAPS_KEY;im.hidden=false;note.textContent="Street View photo (can be a few years old)";return}}catch(e){}
-  }
-  sat()}
-$("mh_btn").onclick=async()=>{
-  const b=$("mh_btn"),addr=(mhG&&mhG.rc)||mAddr||$("maddr").value.trim();if(!addr)return;
-  b.disabled=true;b.textContent="Looking up…";
-  try{const {data,error}=await sb.functions.invoke("home-info",{body:{address:addr}});
-    if(error||!data||data.error){let st=0;try{st=error&&error.context&&error.context.status}catch(e){}
-      $("mh_info").innerHTML=`<div class="sub" style="margin-top:8px">${st===404||(data&&data.error==="not_found")?"No public records found for that address.":"Couldn't load home details right now. Check your connection and try again."}</div>`;b.disabled=false;b.textContent="Try again";return}
-    mhData=data;const p=data.property||{},v=data.value||{};
-    const cells=[["Estimated value",v.price?mhMoney(v.price)+(v.low&&v.high?`<small style="margin:2px 0 0">${mhMoney(v.low)} – ${mhMoney(v.high)}</small>`:""):"—","w2"],["Bedrooms",p.beds??"—"],["Bathrooms",p.baths??"—"],["Square feet",p.sqft?p.sqft.toLocaleString():"—"],["Year built",p.year||"—"],["Stories",p.stories||"—"],["Lot size",p.lot?p.lot.toLocaleString()+" sq ft":"—"],["Last sold",p.lastSalePrice?mhMoney(p.lastSalePrice)+(p.lastSaleDate?`<small style="margin:2px 0 0">${new Date(p.lastSaleDate).toLocaleDateString("en-US",{month:"short",year:"numeric",timeZone:"UTC"})}</small>`:""):"—"],["Roof",p.roof||"—"],["Exterior",p.exterior||"—"]];
-    $("mh_info").innerHTML=`<div class="hg">`+cells.map(c=>`<div class="${c[2]||""}"><small>${c[0]}</small><b>${c[1]}</b></div>`).join("")+`</div><div class="sub" style="margin-top:6px">Public records and an automated estimate, not an appraisal.</div>`;
-    if(p.sqft){const est=Math.round(p.sqft/90);$("mh_est").innerHTML=`Estimate: about <b>${Math.round(est*.8)}–${Math.round(est*1.2)}</b> windows, based on home size. Count the real number and type it here. <a href="#" id="mh_use" style="color:var(--a)">Use ${est}</a>`;$("mh_use").onclick=e=>{e.preventDefault();$("mh_win").value=est}}
-    b.hidden=true;
-  }catch(e){$("mh_info").innerHTML=`<div class="sub" style="margin-top:8px">Couldn't load home details right now. Check your connection and try again.</div>`;b.disabled=false;b.textContent="Try again"}
-};
+  const t=(g.rc||g.name||"").replace(/,\s*United States$/,"");
+  $("mhome").hidden=false;$("mh_addr").textContent=g.name.replace(/,\s*United States$/,"");
+  $("mh_z").href="https://www.zillow.com/homes/"+encodeURIComponent(t.replace(/,/g,"").trim().replace(/\s+/g,"-"))+"_rb/"}
 const KIND={roofing:"Roof",pest:"Pest control",solar:"Solar",window:"Window cleaning",pressure:"Pressure washing",other:"Property"};
 const mKindNow=()=>KIND[(prof.niches&&prof.niches[0])||"other"]||"Property";
 function mTotals(){const tot=mAreas.reduce((a,x)=>a+x.sqft,0),cs=mCur.length>=3?mArea(mCur):0,sq=tot+cs,ppf=parseFloat($("mppf").value)||0;
   return{sq:Math.round(sq),ppf,price:Math.round(sq*ppf),areas:mAreas.map(a=>Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
-function mhNote(){const p=(mhData&&mhData.property)||{},v=(mhData&&mhData.value)||{},w=parseInt($("mh_win").value)||0,a=[];
-  if(p.beds||p.baths||p.sqft)a.push([p.beds?p.beds+" bd":"",p.baths?p.baths+" ba":"",p.sqft?p.sqft.toLocaleString()+" sq ft home":""].filter(Boolean).join(" / "));
-  if(p.year)a.push("built "+p.year);if(v.price)a.push("est. value "+mhMoney(v.price));if(w)a.push(w+" windows");
-  return a.length?" · "+a.join(" · "):""}
+function mhNote(){return ""}
 function mNote(t){const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
   return "Measured "+d+" ("+mKindNow()+"): "+(t.areas.length>1?t.areas.map((a,i)=>"Area "+(i+1)+" "+a.toLocaleString()+" sq ft").join(" + ")+" = ":"")+t.sq.toLocaleString()+" sq ft"+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")+mhNote()}
 $("msave").onclick=()=>{
