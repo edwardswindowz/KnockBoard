@@ -198,7 +198,8 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
     <div class="row"><button id="mdone" style="flex:1">Finish area</button><button id="mcut" style="flex:1;color:#ff6b6b">Cut out</button><button id="mundo" style="flex:1">Undo</button><button id="mclr" style="flex:1">Clear all</button></div>
     <div id="mres"></div>
     <div id="mroof" class="row" style="margin-top:6px" hidden><div><label>Roof pitch</label><select id="mpitch"><option value="1">Flat / low (up to 2/12)</option><option value="1.031">3/12</option><option value="1.054">4/12</option><option value="1.083">5/12</option><option value="1.118" selected>6/12 (common)</option><option value="1.158">7/12</option><option value="1.202">8/12</option><option value="1.25">9/12</option><option value="1.302">10/12</option><option value="1.414">12/12 (steep)</option></select></div><div><label>Waste %</label><input id="mwaste" type="number" inputmode="numeric" placeholder="10"></div></div>
-    <div class="row" style="margin-top:6px;align-items:end"><div><label>Price per sq ft ($)</label><input id="mppf" type="number" step="0.01" inputmode="decimal" placeholder="0.15"></div><div><label>Quote</label><div id="mquote" style="font-size:26px;font-weight:800;color:var(--a)">$0</div></div></div>
+    <div id="munitw" class="row" style="margin-top:6px" hidden><div><label>Price by</label><select id="munit"><option value="ft">Per sq ft</option><option value="sq">Per roofing square (100 sq ft)</option></select></div></div>
+    <div class="row" style="margin-top:6px;align-items:end"><div><label id="mplab">Price per sq ft ($)</label><input id="mppf" type="number" step="0.01" inputmode="decimal" placeholder="0.15"></div><div><label>Quote</label><div id="mquote" style="font-size:26px;font-weight:800;color:var(--a)">$0</div></div></div>
     <button id="msave" class="btn pri" style="width:100%;margin-top:8px;padding:13px">Save to customer</button>
     <div class="card hi" id="mhome" hidden style="margin-top:14px">
       <div class="sec" style="margin:0 0 6px"><h3>The house</h3></div>
@@ -654,7 +655,7 @@ function mInit(){
   mm=L.map("mmap",{zoomControl:false,maxZoom:22,zoomSnap:0.5,zoomDelta:0.5}).setView([39.5,-98.35],4);
   const ml=tiles(true);ml.options.maxZoom=22;ml.options.maxNativeZoom=20;ml.addTo(mm);mm.drawn=L.layerGroup().addTo(mm);
   mm.on("click",e=>{mCur.push(e.latlng);mAddMk(e.latlng);mRedraw()});
-  try{$("mppf").value=localStorage.getItem("kb_ppf")||""}catch(e){}
+  try{$("mppf").value=localStorage.getItem(mPK())||""}catch(e){}
   if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{if(!mAreas.length&&!mCur.length)mm.setView([p.coords.latitude,p.coords.longitude],17)},()=>{},{maximumAge:60000});
 }
 function mAddMk(ll){
@@ -667,6 +668,8 @@ function mRedraw(skipMk){
   if(mCur.length>1)mCurLine=(mCur.length>2?L.polygon:L.polyline)(mCur,{color:"#2b7fff",weight:3,fillOpacity:.25}).addTo(mm);
   mList();
 }
+const mUnitSq=()=>mRoofOn()&&$("munit").value==="sq";
+const mPK=()=>mUnitSq()?"kb_pps":"kb_ppf";
 const mRoofOn=()=>((prof.niches&&prof.niches[0])||"")==="roofing";
 const mRoofF=()=>mRoofOn()?(parseFloat($("mpitch").value)||1):1;
 const mWaste=()=>{const w=parseFloat($("mwaste").value);return isNaN(w)?10:Math.min(50,Math.max(0,w))};
@@ -677,18 +680,20 @@ function mList(){
   const cs=mArea(mCur);
   if(mCur.length>=3){h+=`<div class="marow"><span>Drawing…</span><b>${Math.round(cs).toLocaleString()} sq ft</b></div>`}
   else if(mCur.length)h+=`<div class="marow"><span>Drawing… tap at least 3 points</span></div>`;
-  const fp=Math.max(0,tot+cs),f=mRoofF(),all=fp*f;$("mroof").hidden=!mRoofOn();
+  const fp=Math.max(0,tot+cs),f=mRoofF(),all=fp*f;$("mroof").hidden=!mRoofOn();$("munitw").hidden=!mRoofOn();$("mplab").textContent=mUnitSq()?"Price per square ($)":"Price per sq ft ($)";$("mppf").placeholder=mUnitSq()?"450":"0.15";
   let rh="";if(mRoofOn()&&fp>0){rh=`<div class="marow"><span>Roof surface (pitch ${mPitchLab()}, \u00d7${f.toFixed(2)})</span><b>${Math.round(all).toLocaleString()} sq ft</b></div><div class="marow"><span>Roofing squares</span><b>${(all/100).toFixed(1)}</b></div><div class="marow"><span>To order (+${mWaste()}% waste)</span><b>${(all*(1+mWaste()/100)/100).toFixed(1)} squares</b></div>`}
   if(mAreas.length+((mCur.length>=3)?1:0)>0)h+=`<div class="marow" style="border-top:1px solid #333"><span><b>${mRoofOn()?"Footprint total":"Total"}</b></span><b>${Math.round(fp).toLocaleString()} sq ft</b></div>`;
   h+=rh;el.innerHTML=h;
   const ppf=parseFloat($("mppf").value)||0;
-  $("mquote").textContent="$"+(all*ppf).toLocaleString(undefined,{maximumFractionDigits:0});
+  $("mquote").textContent="$"+(mUnitSq()?all/100*ppf:all*ppf).toLocaleString(undefined,{maximumFractionDigits:0});
 }
 $("mres").onclick=e=>{const i=e.target.dataset.del;if(i==null)return;const a=mAreas.splice(+i,1)[0];mm.drawn.removeLayer(a.layer);mList()};
 try{$("mpitch").value=localStorage.getItem("kb_pitch")||"1.118";$("mwaste").value=localStorage.getItem("kb_waste")||""}catch(e){}
 $("mpitch").onchange=()=>{try{localStorage.setItem("kb_pitch",$("mpitch").value)}catch(e){}mList()};
 $("mwaste").oninput=()=>{try{localStorage.setItem("kb_waste",$("mwaste").value)}catch(e){}mList()};
-$("mppf").oninput=()=>{try{localStorage.setItem("kb_ppf",$("mppf").value)}catch(e){}mList()};
+$("mppf").oninput=()=>{try{localStorage.setItem(mPK(),$("mppf").value)}catch(e){}mList()};
+try{$("munit").value=localStorage.getItem("kb_unit")||"ft"}catch(e){}
+$("munit").onchange=()=>{try{localStorage.setItem("kb_unit",$("munit").value);$("mppf").value=localStorage.getItem(mPK())||""}catch(e){}mList()};
 function mFinish(cut){
   if(mCur.length<3){$("mmsg").textContent="Tap at least 3 points around the area first.";return}
   if(cut&&!mAreas.some(a=>!a.cut)){$("mmsg").textContent="Finish an area first, then outline what to cut out of it.";return}
@@ -762,12 +767,12 @@ function mhShow(g){
   $("mh_z").href="https://www.zillow.com/homes/"+encodeURIComponent(t.replace(/,/g,"").trim().replace(/\s+/g,"-"))+"_rb/"}
 const KIND={roofing:"Roof",pest:"Pest control",solar:"Solar",window:"Window cleaning",pressure:"Pressure washing",other:"Property"};
 const mKindNow=()=>KIND[(prof.niches&&prof.niches[0])||"other"]||"Property";
-function mTotals(){const tot=mAreas.reduce((a,x)=>a+(x.cut?-x.sqft:x.sqft),0),cs=mCur.length>=3?mArea(mCur):0,fp=Math.max(0,tot+cs),f=mRoofF(),sq=fp*f,ppf=parseFloat($("mppf").value)||0;
-  return{sq:Math.round(sq),fp:Math.round(fp),f,ppf,price:Math.round(sq*ppf),areas:mAreas.map(a=>(a.cut?-1:1)*Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
+function mTotals(){const tot=mAreas.reduce((a,x)=>a+(x.cut?-x.sqft:x.sqft),0),cs=mCur.length>=3?mArea(mCur):0,fp=Math.max(0,tot+cs),f=mRoofF(),sq=fp*f,ppf=parseFloat($("mppf").value)||0,u=mUnitSq();
+  return{sq:Math.round(sq),fp:Math.round(fp),f,ppf,u,price:Math.round(u?sq/100*ppf:sq*ppf),areas:mAreas.map(a=>(a.cut?-1:1)*Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
 function mhNote(){return ""}
 function mParts(a){let n=0,o="";a.forEach((x,i)=>{if(x<0)o+=" \u2212 Cut out "+Math.abs(x).toLocaleString()+" sq ft";else o+=(i?" + ":"")+"Area "+(++n)+" "+x.toLocaleString()+" sq ft"});return o}
 function mNote(t){const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
-  return "Measured "+d+" ("+mKindNow()+"): "+(t.areas.length>1?mParts(t.areas)+" = ":"")+(t.f!==1?t.fp.toLocaleString()+" sq ft footprint \u00d7 "+t.f.toFixed(2)+" (pitch "+mPitchLab()+") = ":"")+t.sq.toLocaleString()+" sq ft"+(t.f!==1?" ("+(t.sq/100).toFixed(1)+" squares, "+(t.sq*(1+mWaste()/100)/100).toFixed(1)+" to order with "+mWaste()+"% waste)":"")+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")+mhNote()}
+  return "Measured "+d+" ("+mKindNow()+"): "+(t.areas.length>1?mParts(t.areas)+" = ":"")+(t.f!==1?t.fp.toLocaleString()+" sq ft footprint \u00d7 "+t.f.toFixed(2)+" (pitch "+mPitchLab()+") = ":"")+t.sq.toLocaleString()+" sq ft"+(t.f!==1?" ("+(t.sq/100).toFixed(1)+" squares, "+(t.sq*(1+mWaste()/100)/100).toFixed(1)+" to order with "+mWaste()+"% waste)":"")+(t.ppf?" × $"+t.ppf+(t.u?"/square":"/sq ft")+" = "+money(t.price):"")+mhNote()}
 $("msave").onclick=()=>{
   const t=mTotals();if(!t.sq){$("mmsg").textContent="Outline an area first, then save it.";return}
   $("msum").textContent=mKindNow()+" · "+t.sq.toLocaleString()+" sq ft"+(t.ppf?" · quote "+money(t.price):"");
