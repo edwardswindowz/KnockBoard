@@ -222,6 +222,9 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <label>Services &amp; prices</label><div id="li"></div>
   <div class="litot"><button type="button" class="mini" id="li_add">+ Add service</button><span>Total <b id="li_tot">$0</b></span></div>
   <input id="f_svc" type="hidden"><input id="f_price" type="hidden">
+  <div id="f_sol" hidden><label>Solar details</label><div class="row"><div><label>Monthly electric bill ($)</label><input id="f_sbill" type="number" inputmode="decimal" placeholder="180"></div><div><label>Monthly usage (kWh)</label><input id="f_skwh" type="number" inputmode="decimal" placeholder="900"></div></div>
+  <div class="row"><div><label>System size (kW)</label><input id="f_skw" type="number" step="0.1" inputmode="decimal" placeholder="7.5"></div><div><label>Price per watt ($)</label><input id="f_sppw" type="number" step="0.01" inputmode="decimal" placeholder="2.80"></div></div>
+  <div class="sub" id="f_shint" style="margin-top:6px"></div><button type="button" class="mini" id="f_suse" hidden style="margin-top:6px">Add system price to services</button></div>
   <div class="row"><div><label>Recurring plan</label><select id="f_plan"><option value="">One-time (no plan)</option><option value="1">Monthly</option><option value="2">Every 2 months</option><option value="3">Quarterly</option><option value="6">Every 6 months</option><option value="12">Yearly</option></select></div><div><label>Plan price each visit ($)</label><input id="f_planp" type="number" inputmode="decimal" placeholder="49"></div></div>
   <div class="row"><div><label>Job date <span class="na"><input type="checkbox" id="f_jobna"> N/A</span></label><input id="f_job" type="date"></div><div><label>Job time <span class="na"><input type="checkbox" id="f_timena"> N/A</span></label><input id="f_time" type="time"></div></div>
   <div class="row"><div><label>Follow up on</label><input id="f_fu" type="date"></div></div>
@@ -448,7 +451,7 @@ function render(){
   $("list").innerHTML=list.length?list.map(r=>{
     const ph=(r.phone||"").replace(/[^\d+]/g,""),late=r.follow_up&&r.follow_up<=today(),next=ST[ST.indexOf(r.status)+1];
     return `<div class="card"><div class="top"><div style="display:flex;gap:10px;min-width:0">${ph?`<input type="checkbox" data-sel="${r.id}" ${sel.has(r.id)?"checked":""}>`:""}<div><div class="nm">${esc(r.name)}</div>
-      <div class="sub">${esc(r.service)}${r.price?" · "+money(r.price):""}</div>${itemsLine(r)?`<div class="sub">${esc(itemsLine(r))}</div>`:""}${splitNote(r.notes).plan?`<div class="sub">Plan: ${money(splitNote(r.notes).plan.p)} ${PLANL[splitNote(r.notes).plan.m]||""}</div>`:""}
+      <div class="sub">${esc(r.service)}${r.price?" · "+money(r.price):""}</div>${itemsLine(r)?`<div class="sub">${esc(itemsLine(r))}</div>`:""}${splitNote(r.notes).solar?`<div class="sub">Solar: ${solLine(splitNote(r.notes).solar)}</div>`:""}${splitNote(r.notes).plan?`<div class="sub">Plan: ${money(splitNote(r.notes).plan.p)} ${PLANL[splitNote(r.notes).plan.m]||""}</div>`:""}
       ${r.address?`<div class="sub">${esc(r.address)}</div>`:""}
       ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}${splitNote(r.notes).time?" · "+fmtT(splitNote(r.notes).time):""}</div>`:""}
       ${r.follow_up?`<div class="sub ${late?"due":""}">${["Paid","Done"].includes(r.status)?"Rebook reminder":"Follow up"}: ${esc(r.follow_up)}</div>`:""}
@@ -458,14 +461,23 @@ function render(){
       <button class="g" data-share="${r.id}">Share</button>${r.status==="Paid"&&ph?`<button data-rv="${r.id}">Ask for review</button>`:""}${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button class="g" data-edit="${r.id}">Edit</button></div></div>`}).join("")
     :`<div class="empty">No customers yet. Tap “+ New customer” or log a sale on the map.</div>`;
 }
+const solLine=o=>[o.bill?money(o.bill)+"/mo bill":"",o.kwh?o.kwh.toLocaleString()+" kWh/mo":"",o.kw?o.kw+" kW system":"",o.kw&&o.ppw?"$"+o.ppw+"/W = "+money(Math.round(o.kw*1000*o.ppw)):""].filter(Boolean).join(" \u00b7 ");
+function solUpd(){const bill=+$("f_sbill").value||0,kwh=+$("f_skwh").value||0,kw=+$("f_skw").value||0,ppw=+$("f_sppw").value||0,use=kwh||(bill?bill/0.15:0),h=[];
+  if(use){const sug=Math.round(use*12/1400*10)/10;h.push(`${kwh?"":"Bill is about "+Math.round(use).toLocaleString()+" kWh/mo at ~15\u00a2 per kWh. "}A system of roughly <b>${sug} kW</b> would cover that${kw?"":" (rough guess: ~1,400 kWh per kW per year; needs a real site design)"}.`)}
+  if(kw&&ppw)h.push(`System price: <b>${money(Math.round(kw*1000*ppw))}</b>`);
+  $("f_shint").innerHTML=h.join("<br>");$("f_suse").hidden=!(kw&&ppw)}
+["f_sbill","f_skwh","f_skw","f_sppw"].forEach(id=>$(id).addEventListener("input",solUpd));
+$("f_suse").onclick=()=>{const kw=+$("f_skw").value||0,ppw=+$("f_sppw").value||0;if(!kw||!ppw)return;const p=Math.round(kw*1000*ppw),L=fLI.LI;
+  if(L.length===1&&!(L[0].n||"").trim()&&!(+L[0].p))L[0]={n:"Solar system ("+kw+" kW)",p};else L.push({n:"Solar system ("+kw+" kW)",p});fLI.render()};
 const PLANL={1:"monthly",2:"every 2 months",3:"quarterly",6:"every 6 months",12:"yearly"};
-function splitNote(n){n=n||"";let time="",items=null,plan=null,rest=n,m;
-  for(let i=0;i<3;i++){
+function splitNote(n){n=n||"";let time="",items=null,plan=null,solar=null,rest=n,m;
+  for(let i=0;i<4;i++){
     if(m=rest.match(/^Time:\s*(\d{1,2}:\d{2})[ \t]*\n?/)){time=m[1].padStart(5,"0");rest=rest.slice(m[0].length)}
     else if(m=rest.match(/^Items:\s*(\[.*\])[ \t]*\n?/)){try{items=JSON.parse(m[1])}catch(e){}rest=rest.slice(m[0].length)}
+    else if(m=rest.match(/^Solar:\s*([\d.]*)\|([\d.]*)\|([\d.]*)\|([\d.]*)[ \t]*\n?/)){solar={bill:+m[1]||0,kwh:+m[2]||0,kw:+m[3]||0,ppw:+m[4]||0};rest=rest.slice(m[0].length)}
     else if(m=rest.match(/^Plan:\s*(\d+)\|([\d.]*)[ \t]*\n?/)){plan={m:+m[1],p:+m[2]||0};rest=rest.slice(m[0].length)}
     else break}
-  return{time,items,plan,rest}}
+  return{time,items,plan,solar,rest}}
 function makeLI(pre,hs,hp){
   const o={LI:[],
   render(){const LI=o.LI;
@@ -491,7 +503,7 @@ function openForm(r){
   editId=r?r.id:null;r=r||{};$("dt").textContent=r.id?"Edit customer":"New customer";
   const m={f_name:"name",f_phone:"phone",f_email:"email",f_addr:"address",f_svc:"service",f_price:"price",f_src:"source",f_job:"job_date",f_fu:"follow_up",f_notes:"notes"};
   for(const k in m)$(k).value=r[m[k]]||"";
-  const sn=splitNote(r.notes);$("f_notes").value=sn.rest;$("f_time").value=sn.time;fLI.init(r,sn.items);$("f_plan").value=sn.plan?String(sn.plan.m):"";$("f_planp").value=sn.plan&&sn.plan.p?sn.plan.p:"";
+  const sn=splitNote(r.notes);$("f_notes").value=sn.rest;$("f_time").value=sn.time;fLI.init(r,sn.items);$("f_plan").value=sn.plan?String(sn.plan.m):"";{const so=sn.solar||{};$("f_sbill").value=so.bill||"";$("f_skwh").value=so.kwh||"";$("f_skw").value=so.kw||"";$("f_sppw").value=so.ppw||"";$("f_sol").hidden=!(myNiches().includes("solar")||sn.solar);solUpd()}$("f_planp").value=sn.plan&&sn.plan.p?sn.plan.p:"";
   $("f_jobna").checked=!!r.id&&!r.job_date;$("f_timena").checked=!!r.id&&!sn.time;naSync();
   $("f_status").value=r.status||"Lead";$("del").style.display=r.id?"":"none";noteChips();$("dlg").showModal();
 }
@@ -500,7 +512,7 @@ $("cancel").onclick=()=>$("dlg").close();
 $("save").onclick=()=>{
   const name=$("f_name").value.trim();if(!name){$("f_name").focus();return}
   const d={name,phone:$("f_phone").value.trim(),email:$("f_email").value.trim(),address:$("f_addr").value.trim(),service:$("f_svc").value.trim(),
-    status:$("f_status").value,price:+$("f_price").value||0,source:$("f_src").value.trim(),job_date:$("f_job").value||null,follow_up:$("f_fu").value||null,notes:($("f_time").value&&!$("f_timena").checked?"Time: "+$("f_time").value+"\n":"")+fLI.note()+($("f_plan").value?"Plan: "+$("f_plan").value+"|"+(+$("f_planp").value||0)+"\n":"")+$("f_notes").value.trim()};
+    status:$("f_status").value,price:+$("f_price").value||0,source:$("f_src").value.trim(),job_date:$("f_job").value||null,follow_up:$("f_fu").value||null,notes:($("f_time").value&&!$("f_timena").checked?"Time: "+$("f_time").value+"\n":"")+fLI.note()+(($("f_sbill").value||$("f_skwh").value||$("f_skw").value||$("f_sppw").value)?"Solar: "+[$("f_sbill").value,$("f_skwh").value,$("f_skw").value,$("f_sppw").value].map(v=>+v||"").join("|")+"\n":"")+($("f_plan").value?"Plan: "+$("f_plan").value+"|"+(+$("f_planp").value||0)+"\n":"")+$("f_notes").value.trim()};
   if(["Done","Paid"].includes(d.status)&&d.job_date&&!d.follow_up)d.follow_up=rebookDate(d.job_date,d.service,+$("f_plan").value||0);
   if(editId)mutate("upd","customers",editId,d);else mutate("ins","customers",newId(),d);
   $("dlg").close();
@@ -1033,7 +1045,9 @@ const NOTE_BASE=["Call before arriving","Gate / access code:","Dog on property",
 const NOTE_EXTRA={roofing:["2-story","Steep roof","Insurance claim","Tear-off needed","2+ layers","Decking repair"],pest:["Pets in home","Kids in home","Interior + exterior","Termites","Bed bugs","Rodents","Mosquito add-on"],solar:["South-facing roof","Panel upgrade needed","Owns home","Monthly bill $","Shaded roof","Wants battery"],window:["Remove screens","2-story","Hard-water stains"],pressure:["Water & power on site","Oil stains","Seal after washing"],other:[]};
 const myNiches=()=>prof.niches&&prof.niches.length?prof.niches:["other"];
 const srcOpts=()=>[...new Set([...SRC_BASE.slice(0,3),...myNiches().flatMap(n=>SRC_EXTRA[n]||[]),...SRC_BASE.slice(3),...customers.map(c=>c.source).filter(Boolean)])];
-const svcOpts=()=>[...new Set([...svcBase(),...customers.map(c=>c.service),...pins.map(p=>p.service)].filter(Boolean))];
+const svcOpts=()=>{const mine=new Set(svcBase().map(x=>x.toLowerCase())),other=new Set(Object.values(NICHES).flatMap(n=>n.svc).map(x=>x.toLowerCase()).filter(x=>!mine.has(x)));
+  const hist=[...customers.map(c=>c.service),...pins.map(p=>p.service)].flatMap(x=>String(x||"").split(/\s*,\s*/)).filter(x=>x&&!other.has(x.toLowerCase()));
+  return[...new Set([...svcBase(),...hist].filter(Boolean))]};
 const noteOpts=()=>[...new Set([...myNiches().flatMap(n=>NOTE_EXTRA[n]||[]),...NOTE_BASE])];
 const priceOpts=svcId=>()=>{const sv=($(svcId).value||"").trim().toLowerCase();
   const a=[...new Set(customers.filter(c=>+c.price>0&&(!sv||(c.service||"").toLowerCase()===sv)).map(c=>String(+c.price)))].slice(0,10);
