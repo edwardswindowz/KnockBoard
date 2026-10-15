@@ -456,7 +456,7 @@ function render(){
       ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}${splitNote(r.notes).time?" · "+fmtT(splitNote(r.notes).time):""}</div>`:""}
       ${r.follow_up?`<div class="sub ${late?"due":""}">${["Paid","Done"].includes(r.status)?"Rebook reminder":"Follow up"}: ${esc(r.follow_up)}</div>`:""}
       ${splitNote(r.notes).rest?`<div class="sub">${esc(splitNote(r.notes).rest)}</div>`:""}</div></div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
-      <div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>`:""}
+      <div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>${+r.price>0&&["Lead","Quoted"].includes(r.status)?`<button data-quote="${r.id}">Text quote</button>`:""}`:""}
       ${r.address?`<a class="btn g" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}
       <button class="g" data-share="${r.id}">Share</button>${r.status==="Paid"&&ph?`<button data-rv="${r.id}">Ask for review</button>`:""}${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button class="g" data-edit="${r.id}">Edit</button></div></div>`}).join("")
     :`<div class="empty">No customers yet. Tap “+ New customer” or log a sale on the map.</div>`;
@@ -525,6 +525,7 @@ $("list").onclick=e=>{
   const ed=e.target.dataset.edit,adv=e.target.dataset.adv;
   if(ed)openForm(customers.find(r=>r.id===ed));
   if(adv){const r=customers.find(r=>r.id===adv);if(r){const ns=ST[ST.indexOf(r.status)+1],u={status:ns};if(["Done","Paid"].includes(ns)&&r.job_date&&!r.follow_up)u.follow_up=rebookDate(r.job_date,r.service,(splitNote(r.notes).plan||{}).m||0);mutate("upd","customers",adv,u)}}
+  if(e.target.dataset.quote){const r=customers.find(r=>r.id===e.target.dataset.quote),ph=r&&(r.phone||"").replace(/[^\d+]/g,"");if(ph)location.href=smsHref([ph],qTxt(r))}
   if(e.target.dataset.rv)askReview(e.target.dataset.rv);
   if(e.target.dataset.share)shareJob(e.target.dataset.share);
 };
@@ -910,6 +911,11 @@ let calM=new Date(new Date().getFullYear(),new Date().getMonth(),1),calSel=today
 const phoneOfC=r=>(r.phone||"").replace(/[^\d+]/g,"");
 const longDay=k=>parseD(k).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
 const bizN=()=>(lsGet(K("bizname"),"")||"").trim();
+function qTxt(r){const sn=splitNote(r.notes),it=sn.items&&sn.items.length>1?sn.items:null,pl=sn.plan&&sn.plan.p>0?sn.plan:null;let t=hiTxt(r.name);
+  if(it)t+="Here's your quote:\n"+it.map(x=>x[0]+": "+money(x[1])).join("\n")+"\nTotal: "+money(r.price)+".";
+  else t+="Here's your quote"+(r.service?" for "+r.service:"")+": "+money(r.price)+".";
+  if(pl)t+=" After the initial visit, your "+PLANL[pl.m]+" service is "+money(pl.p)+" each visit.";
+  return t+" Reply YES and I'll get you on the schedule."}
 const hiTxt=n=>"Hi "+firstName(n)+(bizN()?", it's "+bizN():"")+"! ";
 function jobMsg(kind,r){const tm=splitNote(r.notes).time,when=longDay(r.job_date)+(tm?" at "+fmtT(tm):"");
   if(kind==="way")return hiTxt(r.name)+"I'm on my way and should be there in about 15 minutes.";
@@ -1042,7 +1048,7 @@ $("qa_save").onclick=()=>{
 const SRC_BASE=["Door knock","Referral","Repeat customer","Google","Facebook","Nextdoor","Yard sign","Flyer / door hanger","Website"];
 const SRC_EXTRA={roofing:["Insurance / storm lead","Contractor referral"],pest:["Neighbor of a customer","Real estate agent"],solar:["Online lead","Utility / program lead"],window:["Property manager","Realtor"],pressure:["HOA / property manager","Realtor"],other:[]};
 const NOTE_BASE=["Call before arriving","Gate / access code:","Dog on property","Prefers text","Cash / check"];
-const NOTE_EXTRA={roofing:["2-story","Steep roof","Insurance claim","Tear-off needed","2+ layers","Decking repair"],pest:["Pets in home","Kids in home","Interior + exterior","Termites","Bed bugs","Rodents","Mosquito add-on"],solar:["South-facing roof","Panel upgrade needed","Owns home","Monthly bill $","Shaded roof","Wants battery"],window:["Remove screens","2-story","Hard-water stains"],pressure:["Water & power on site","Oil stains","Seal after washing"],other:[]};
+const NOTE_EXTRA={roofing:["2-story","Steep roof","Insurance claim","Tear-off needed","2+ layers","Decking repair"],pest:["Pets in home","Kids in home","Interior + exterior","Follow-up visit included","Termites","Bed bugs","Rodents","Mosquito add-on"],solar:["South-facing roof","Panel upgrade needed","Owns home","Monthly bill $","Shaded roof","Wants battery"],window:["Remove screens","2-story","Hard-water stains"],pressure:["Water & power on site","Oil stains","Seal after washing"],other:[]};
 const myNiches=()=>prof.niches&&prof.niches.length?prof.niches:["other"];
 const srcOpts=()=>[...new Set([...SRC_BASE.slice(0,3),...myNiches().flatMap(n=>SRC_EXTRA[n]||[]),...SRC_BASE.slice(3),...customers.map(c=>c.source).filter(Boolean)])];
 const svcOpts=()=>{const mine=new Set(svcBase().map(x=>x.toLowerCase())),other=new Set(Object.values(NICHES).flatMap(n=>n.svc).map(x=>x.toLowerCase()).filter(x=>!mine.has(x)));
