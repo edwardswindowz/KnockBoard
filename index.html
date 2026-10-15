@@ -197,6 +197,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
     <div class="sub" id="mmsg" style="margin-bottom:6px">Search an address, then tap around the area you want to measure. Drag a dot to fine-tune it. To subtract something (like a building inside a parking lot), outline it and tap Cut out.</div>
     <div class="row"><button id="mdone" style="flex:1">Finish area</button><button id="mcut" style="flex:1;color:#ff6b6b">Cut out</button><button id="mundo" style="flex:1">Undo</button><button id="mclr" style="flex:1">Clear all</button></div>
     <div id="mres"></div>
+    <div id="mroof" class="row" style="margin-top:6px" hidden><div><label>Roof pitch</label><select id="mpitch"><option value="1">Flat / low (up to 2/12)</option><option value="1.031">3/12</option><option value="1.054">4/12</option><option value="1.083">5/12</option><option value="1.118" selected>6/12 (common)</option><option value="1.158">7/12</option><option value="1.202">8/12</option><option value="1.25">9/12</option><option value="1.302">10/12</option><option value="1.414">12/12 (steep)</option></select></div><div><label>Waste %</label><input id="mwaste" type="number" inputmode="numeric" placeholder="10"></div></div>
     <div class="row" style="margin-top:6px;align-items:end"><div><label>Price per sq ft ($)</label><input id="mppf" type="number" step="0.01" inputmode="decimal" placeholder="0.15"></div><div><label>Quote</label><div id="mquote" style="font-size:26px;font-weight:800;color:var(--a)">$0</div></div></div>
     <button id="msave" class="btn pri" style="width:100%;margin-top:8px;padding:13px">Save to customer</button>
     <div class="card hi" id="mhome" hidden style="margin-top:14px">
@@ -220,6 +221,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <label>Services &amp; prices</label><div id="li"></div>
   <div class="litot"><button type="button" class="mini" id="li_add">+ Add service</button><span>Total <b id="li_tot">$0</b></span></div>
   <input id="f_svc" type="hidden"><input id="f_price" type="hidden">
+  <div class="row"><div><label>Recurring plan</label><select id="f_plan"><option value="">One-time (no plan)</option><option value="1">Monthly</option><option value="2">Every 2 months</option><option value="3">Quarterly</option><option value="6">Every 6 months</option><option value="12">Yearly</option></select></div><div><label>Plan price each visit ($)</label><input id="f_planp" type="number" inputmode="decimal" placeholder="49"></div></div>
   <div class="row"><div><label>Job date <span class="na"><input type="checkbox" id="f_jobna"> N/A</span></label><input id="f_job" type="date"></div><div><label>Job time <span class="na"><input type="checkbox" id="f_timena"> N/A</span></label><input id="f_time" type="time"></div></div>
   <div class="row"><div><label>Follow up on</label><input id="f_fu" type="date"></div></div>
   <label>Notes</label><textarea id="f_notes"></textarea><div class="nchips" id="f_chips"></div>
@@ -445,7 +447,7 @@ function render(){
   $("list").innerHTML=list.length?list.map(r=>{
     const ph=(r.phone||"").replace(/[^\d+]/g,""),late=r.follow_up&&r.follow_up<=today(),next=ST[ST.indexOf(r.status)+1];
     return `<div class="card"><div class="top"><div style="display:flex;gap:10px;min-width:0">${ph?`<input type="checkbox" data-sel="${r.id}" ${sel.has(r.id)?"checked":""}>`:""}<div><div class="nm">${esc(r.name)}</div>
-      <div class="sub">${esc(r.service)}${r.price?" · "+money(r.price):""}</div>${itemsLine(r)?`<div class="sub">${esc(itemsLine(r))}</div>`:""}
+      <div class="sub">${esc(r.service)}${r.price?" · "+money(r.price):""}</div>${itemsLine(r)?`<div class="sub">${esc(itemsLine(r))}</div>`:""}${splitNote(r.notes).plan?`<div class="sub">Plan: ${money(splitNote(r.notes).plan.p)} ${PLANL[splitNote(r.notes).plan.m]||""}</div>`:""}
       ${r.address?`<div class="sub">${esc(r.address)}</div>`:""}
       ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}${splitNote(r.notes).time?" · "+fmtT(splitNote(r.notes).time):""}</div>`:""}
       ${r.follow_up?`<div class="sub ${late?"due":""}">${["Paid","Done"].includes(r.status)?"Rebook reminder":"Follow up"}: ${esc(r.follow_up)}</div>`:""}
@@ -455,12 +457,14 @@ function render(){
       <button class="g" data-share="${r.id}">Share</button>${r.status==="Paid"&&ph?`<button data-rv="${r.id}">Ask for review</button>`:""}${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button class="g" data-edit="${r.id}">Edit</button></div></div>`}).join("")
     :`<div class="empty">No customers yet. Tap “+ New customer” or log a sale on the map.</div>`;
 }
-function splitNote(n){n=n||"";let time="",items=null,rest=n,m;
-  for(let i=0;i<2;i++){
+const PLANL={1:"monthly",2:"every 2 months",3:"quarterly",6:"every 6 months",12:"yearly"};
+function splitNote(n){n=n||"";let time="",items=null,plan=null,rest=n,m;
+  for(let i=0;i<3;i++){
     if(m=rest.match(/^Time:\s*(\d{1,2}:\d{2})[ \t]*\n?/)){time=m[1].padStart(5,"0");rest=rest.slice(m[0].length)}
     else if(m=rest.match(/^Items:\s*(\[.*\])[ \t]*\n?/)){try{items=JSON.parse(m[1])}catch(e){}rest=rest.slice(m[0].length)}
+    else if(m=rest.match(/^Plan:\s*(\d+)\|([\d.]*)[ \t]*\n?/)){plan={m:+m[1],p:+m[2]||0};rest=rest.slice(m[0].length)}
     else break}
-  return{time,items,rest}}
+  return{time,items,plan,rest}}
 function makeLI(pre,hs,hp){
   const o={LI:[],
   render(){const LI=o.LI;
@@ -486,7 +490,7 @@ function openForm(r){
   editId=r?r.id:null;r=r||{};$("dt").textContent=r.id?"Edit customer":"New customer";
   const m={f_name:"name",f_phone:"phone",f_email:"email",f_addr:"address",f_svc:"service",f_price:"price",f_src:"source",f_job:"job_date",f_fu:"follow_up",f_notes:"notes"};
   for(const k in m)$(k).value=r[m[k]]||"";
-  const sn=splitNote(r.notes);$("f_notes").value=sn.rest;$("f_time").value=sn.time;fLI.init(r,sn.items);
+  const sn=splitNote(r.notes);$("f_notes").value=sn.rest;$("f_time").value=sn.time;fLI.init(r,sn.items);$("f_plan").value=sn.plan?String(sn.plan.m):"";$("f_planp").value=sn.plan&&sn.plan.p?sn.plan.p:"";
   $("f_jobna").checked=!!r.id&&!r.job_date;$("f_timena").checked=!!r.id&&!sn.time;naSync();
   $("f_status").value=r.status||"Lead";$("del").style.display=r.id?"":"none";noteChips();$("dlg").showModal();
 }
@@ -495,8 +499,8 @@ $("cancel").onclick=()=>$("dlg").close();
 $("save").onclick=()=>{
   const name=$("f_name").value.trim();if(!name){$("f_name").focus();return}
   const d={name,phone:$("f_phone").value.trim(),email:$("f_email").value.trim(),address:$("f_addr").value.trim(),service:$("f_svc").value.trim(),
-    status:$("f_status").value,price:+$("f_price").value||0,source:$("f_src").value.trim(),job_date:$("f_job").value||null,follow_up:$("f_fu").value||null,notes:($("f_time").value&&!$("f_timena").checked?"Time: "+$("f_time").value+"\n":"")+fLI.note()+$("f_notes").value.trim()};
-  if(["Done","Paid"].includes(d.status)&&d.job_date&&!d.follow_up)d.follow_up=rebookDate(d.job_date,d.service);
+    status:$("f_status").value,price:+$("f_price").value||0,source:$("f_src").value.trim(),job_date:$("f_job").value||null,follow_up:$("f_fu").value||null,notes:($("f_time").value&&!$("f_timena").checked?"Time: "+$("f_time").value+"\n":"")+fLI.note()+($("f_plan").value?"Plan: "+$("f_plan").value+"|"+(+$("f_planp").value||0)+"\n":"")+$("f_notes").value.trim()};
+  if(["Done","Paid"].includes(d.status)&&d.job_date&&!d.follow_up)d.follow_up=rebookDate(d.job_date,d.service,+$("f_plan").value||0);
   if(editId)mutate("upd","customers",editId,d);else mutate("ins","customers",newId(),d);
   $("dlg").close();
 };
@@ -507,7 +511,7 @@ $("list").onclick=e=>{
   if(e.target.dataset.sel){const id=e.target.dataset.sel;e.target.checked?sel.add(id):sel.delete(id);updSel();return}
   const ed=e.target.dataset.edit,adv=e.target.dataset.adv;
   if(ed)openForm(customers.find(r=>r.id===ed));
-  if(adv){const r=customers.find(r=>r.id===adv);if(r){const ns=ST[ST.indexOf(r.status)+1],u={status:ns};if(["Done","Paid"].includes(ns)&&r.job_date&&!r.follow_up)u.follow_up=rebookDate(r.job_date,r.service);mutate("upd","customers",adv,u)}}
+  if(adv){const r=customers.find(r=>r.id===adv);if(r){const ns=ST[ST.indexOf(r.status)+1],u={status:ns};if(["Done","Paid"].includes(ns)&&r.job_date&&!r.follow_up)u.follow_up=rebookDate(r.job_date,r.service,(splitNote(r.notes).plan||{}).m||0);mutate("upd","customers",adv,u)}}
   if(e.target.dataset.rv)askReview(e.target.dataset.rv);
   if(e.target.dataset.share)shareJob(e.target.dataset.share);
 };
@@ -645,6 +649,7 @@ function mArea(pts){ // sq ft, local equirectangular projection (accurate for pr
 }
 function mPerim(pts,close){let d=0;for(let i=0;i<pts.length-(close?0:1);i++){d+=mm.distance(pts[i],pts[(i+1)%pts.length])}return d*3.28084}
 function mInit(){
+  mList();
   if(mm){mm.invalidateSize();return}
   mm=L.map("mmap",{zoomControl:false,maxZoom:22,zoomSnap:0.5,zoomDelta:0.5}).setView([39.5,-98.35],4);
   const ml=tiles(true);ml.options.maxZoom=22;ml.options.maxNativeZoom=20;ml.addTo(mm);mm.drawn=L.layerGroup().addTo(mm);
@@ -662,19 +667,27 @@ function mRedraw(skipMk){
   if(mCur.length>1)mCurLine=(mCur.length>2?L.polygon:L.polyline)(mCur,{color:"#2b7fff",weight:3,fillOpacity:.25}).addTo(mm);
   mList();
 }
+const mRoofOn=()=>((prof.niches&&prof.niches[0])||"")==="roofing";
+const mRoofF=()=>mRoofOn()?(parseFloat($("mpitch").value)||1):1;
+const mWaste=()=>{const w=parseFloat($("mwaste").value);return isNaN(w)?10:Math.min(50,Math.max(0,w))};
+const mPitchLab=()=>{const o=$("mpitch");return o.options[o.selectedIndex].text.replace(/ \(.*\)/,"")};
 function mList(){
   const el=$("mres");let tot=0,h="";
   let na=0,nc=0;mAreas.forEach((a,i)=>{const nm=a.cut?"Cut out "+(++nc):"Area "+(++na);tot+=a.cut?-a.sqft:a.sqft;h+=`<div class="marow"${a.cut?' style="color:#ff6b6b"':''}><span>${nm}</span><b>${a.cut?"\u2212":""}${Math.round(a.sqft).toLocaleString()} sq ft</b><button data-del="${i}" style="padding:4px 10px">\u2715</button></div>`});
   const cs=mArea(mCur);
   if(mCur.length>=3){h+=`<div class="marow"><span>Drawing…</span><b>${Math.round(cs).toLocaleString()} sq ft</b></div>`}
   else if(mCur.length)h+=`<div class="marow"><span>Drawing… tap at least 3 points</span></div>`;
-  const all=Math.max(0,tot+cs);
-  if(mAreas.length+((mCur.length>=3)?1:0)>0)h+=`<div class="marow" style="border-top:1px solid #333"><span><b>Total</b></span><b>${Math.round(all).toLocaleString()} sq ft</b></div>`;
-  el.innerHTML=h;
+  const fp=Math.max(0,tot+cs),f=mRoofF(),all=fp*f;$("mroof").hidden=!mRoofOn();
+  let rh="";if(mRoofOn()&&fp>0){rh=`<div class="marow"><span>Roof surface (pitch ${mPitchLab()}, \u00d7${f.toFixed(2)})</span><b>${Math.round(all).toLocaleString()} sq ft</b></div><div class="marow"><span>Roofing squares</span><b>${(all/100).toFixed(1)}</b></div><div class="marow"><span>To order (+${mWaste()}% waste)</span><b>${(all*(1+mWaste()/100)/100).toFixed(1)} squares</b></div>`}
+  if(mAreas.length+((mCur.length>=3)?1:0)>0)h+=`<div class="marow" style="border-top:1px solid #333"><span><b>${mRoofOn()?"Footprint total":"Total"}</b></span><b>${Math.round(fp).toLocaleString()} sq ft</b></div>`;
+  h+=rh;el.innerHTML=h;
   const ppf=parseFloat($("mppf").value)||0;
   $("mquote").textContent="$"+(all*ppf).toLocaleString(undefined,{maximumFractionDigits:0});
 }
 $("mres").onclick=e=>{const i=e.target.dataset.del;if(i==null)return;const a=mAreas.splice(+i,1)[0];mm.drawn.removeLayer(a.layer);mList()};
+try{$("mpitch").value=localStorage.getItem("kb_pitch")||"1.118";$("mwaste").value=localStorage.getItem("kb_waste")||""}catch(e){}
+$("mpitch").onchange=()=>{try{localStorage.setItem("kb_pitch",$("mpitch").value)}catch(e){}mList()};
+$("mwaste").oninput=()=>{try{localStorage.setItem("kb_waste",$("mwaste").value)}catch(e){}mList()};
 $("mppf").oninput=()=>{try{localStorage.setItem("kb_ppf",$("mppf").value)}catch(e){}mList()};
 function mFinish(cut){
   if(mCur.length<3){$("mmsg").textContent="Tap at least 3 points around the area first.";return}
@@ -749,12 +762,12 @@ function mhShow(g){
   $("mh_z").href="https://www.zillow.com/homes/"+encodeURIComponent(t.replace(/,/g,"").trim().replace(/\s+/g,"-"))+"_rb/"}
 const KIND={roofing:"Roof",pest:"Pest control",solar:"Solar",window:"Window cleaning",pressure:"Pressure washing",other:"Property"};
 const mKindNow=()=>KIND[(prof.niches&&prof.niches[0])||"other"]||"Property";
-function mTotals(){const tot=mAreas.reduce((a,x)=>a+(x.cut?-x.sqft:x.sqft),0),cs=mCur.length>=3?mArea(mCur):0,sq=Math.max(0,tot+cs),ppf=parseFloat($("mppf").value)||0;
-  return{sq:Math.round(sq),ppf,price:Math.round(sq*ppf),areas:mAreas.map(a=>(a.cut?-1:1)*Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
+function mTotals(){const tot=mAreas.reduce((a,x)=>a+(x.cut?-x.sqft:x.sqft),0),cs=mCur.length>=3?mArea(mCur):0,fp=Math.max(0,tot+cs),f=mRoofF(),sq=fp*f,ppf=parseFloat($("mppf").value)||0;
+  return{sq:Math.round(sq),fp:Math.round(fp),f,ppf,price:Math.round(sq*ppf),areas:mAreas.map(a=>(a.cut?-1:1)*Math.round(a.sqft)).concat(cs?[Math.round(cs)]:[])}}
 function mhNote(){return ""}
 function mParts(a){let n=0,o="";a.forEach((x,i)=>{if(x<0)o+=" \u2212 Cut out "+Math.abs(x).toLocaleString()+" sq ft";else o+=(i?" + ":"")+"Area "+(++n)+" "+x.toLocaleString()+" sq ft"});return o}
 function mNote(t){const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
-  return "Measured "+d+" ("+mKindNow()+"): "+(t.areas.length>1?mParts(t.areas)+" = ":"")+t.sq.toLocaleString()+" sq ft"+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")+mhNote()}
+  return "Measured "+d+" ("+mKindNow()+"): "+(t.areas.length>1?mParts(t.areas)+" = ":"")+(t.f!==1?t.fp.toLocaleString()+" sq ft footprint \u00d7 "+t.f.toFixed(2)+" (pitch "+mPitchLab()+") = ":"")+t.sq.toLocaleString()+" sq ft"+(t.f!==1?" ("+(t.sq/100).toFixed(1)+" squares, "+(t.sq*(1+mWaste()/100)/100).toFixed(1)+" to order with "+mWaste()+"% waste)":"")+(t.ppf?" × $"+t.ppf+"/sq ft = "+money(t.price):"")+mhNote()}
 $("msave").onclick=()=>{
   const t=mTotals();if(!t.sq){$("mmsg").textContent="Outline an area first, then save it.";return}
   $("msum").textContent=mKindNow()+" · "+t.sq.toLocaleString()+" sq ft"+(t.ppf?" · quote "+money(t.price):"");
@@ -874,7 +887,7 @@ const pad2=n=>String(n).padStart(2,"0"),ymd=d=>d.getFullYear()+"-"+pad2(d.getMon
 const parseD=k=>{const[a,b,c]=k.split("-").map(Number);return new Date(a,b-1,c)};
 function nicheOf(svc){const t=(svc||"").trim().toLowerCase();for(const n in NICHES)if(NICHES[n].svc.some(x=>x.toLowerCase()===t))return n;return(prof.niches&&prof.niches[0])||"other"}
 function rebookMonths(svc){const t=(svc||"").toLowerCase();if(/mosquito/.test(t))return 1;if(/quarter/.test(t))return 3;if(/gutter|window/.test(t))return 6;return REBOOK[nicheOf(svc)]||12}
-function rebookDate(jobDate,svc){const d=parseD(jobDate);d.setMonth(d.getMonth()+rebookMonths(svc));return ymd(d)}
+function rebookDate(jobDate,svc,pm){const d=parseD(jobDate);d.setMonth(d.getMonth()+(pm||rebookMonths(svc)));return ymd(d)}
 function agoText(k){const days=Math.round((parseD(today())-parseD(k))/864e5);if(days<45)return days<=13?"recently":Math.round(days/7)+" weeks ago";const m=Math.round(days/30.4);return m>=24?Math.round(m/12)+" years ago":m+" months ago"}
 let calM=new Date(new Date().getFullYear(),new Date().getMonth(),1),calSel=today();
 const phoneOfC=r=>(r.phone||"").replace(/[^\d+]/g,"");
@@ -906,7 +919,7 @@ function homeUI(){
     qdue=qs.filter(c=>c.follow_up&&c.follow_up<=T),rb=customers.filter(c=>["Done","Paid"].includes(c.status)&&c.follow_up&&c.follow_up<=T);
   $("hstats").innerHTML=`<div class="st"><span class="lb">This week</span><b>${money(sum(wk))}</b><span>${wk.length} job${wk.length===1?"":"s"}</span></div>
     <div class="st"><span class="lb">Quotes waiting</span><b>${money(sum(qs))}</b><span>${qs.length} quote${qs.length===1?"":"s"}${qdue.length?` · ${qdue.length} due`:""}</span></div>
-    <div class="st"><span class="lb">Rebook</span><b>${rb.length}</b><span>reminder${rb.length===1?"":"s"}</span></div>`;
+    <div class="st"><span class="lb">Rebook</span><b>${rb.length}</b><span>reminder${rb.length===1?"":"s"}</span></div>`+(()=>{const pc=customers.filter(c=>["Scheduled","Done","Paid"].includes(c.status)&&splitNote(c.notes).plan&&splitNote(c.notes).plan.p>0);if(!pc.length)return"";const mr=pc.reduce((a,c)=>{const p=splitNote(c.notes).plan;return a+p.p/p.m},0);return`<div class="st"><span class="lb">Recurring</span><b>${money(Math.round(mr))}/mo</b><span>${pc.length} plan customer${pc.length===1?"":"s"}</span></div>`})();
   // calendar
   const y=calM.getFullYear(),m=calM.getMonth(),dim=new Date(y,m+1,0).getDate(),start=new Date(y,m,1).getDay(),by={};
   customers.forEach(c=>{if(c.job_date)(by[c.job_date]=by[c.job_date]||[]).push(c)});
@@ -1012,7 +1025,7 @@ $("qa_save").onclick=()=>{
 const SRC_BASE=["Door knock","Referral","Repeat customer","Google","Facebook","Nextdoor","Yard sign","Flyer / door hanger","Website"];
 const SRC_EXTRA={roofing:["Insurance / storm lead","Contractor referral"],pest:["Neighbor of a customer","Real estate agent"],solar:["Online lead","Utility / program lead"],window:["Property manager","Realtor"],pressure:["HOA / property manager","Realtor"],other:[]};
 const NOTE_BASE=["Call before arriving","Gate / access code:","Dog on property","Prefers text","Cash / check"];
-const NOTE_EXTRA={roofing:["2-story","Steep roof","Insurance claim"],pest:["Pets in home","Kids in home","Interior + exterior"],solar:["South-facing roof","Panel upgrade needed"],window:["Remove screens","2-story","Hard-water stains"],pressure:["Water & power on site","Oil stains","Seal after washing"],other:[]};
+const NOTE_EXTRA={roofing:["2-story","Steep roof","Insurance claim","Tear-off needed","2+ layers","Decking repair"],pest:["Pets in home","Kids in home","Interior + exterior","Termites","Bed bugs","Rodents","Mosquito add-on"],solar:["South-facing roof","Panel upgrade needed","Owns home","Monthly bill $","Shaded roof","Wants battery"],window:["Remove screens","2-story","Hard-water stains"],pressure:["Water & power on site","Oil stains","Seal after washing"],other:[]};
 const myNiches=()=>prof.niches&&prof.niches.length?prof.niches:["other"];
 const srcOpts=()=>[...new Set([...SRC_BASE.slice(0,3),...myNiches().flatMap(n=>SRC_EXTRA[n]||[]),...SRC_BASE.slice(3),...customers.map(c=>c.source).filter(Boolean)])];
 const svcOpts=()=>[...new Set([...svcBase(),...customers.map(c=>c.service),...pins.map(p=>p.service)].filter(Boolean))];
