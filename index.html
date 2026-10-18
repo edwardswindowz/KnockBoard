@@ -44,9 +44,9 @@ dialog{border:1px solid var(--b);border-radius:16px;padding:16px;width:min(94vw,
 dialog::backdrop{background:#000b}
 .empty{text-align:center;color:var(--m);padding:30px 10px}
 #map{height:58vh;min-height:320px;border-radius:12px;border:1px solid var(--b)}
-.kbs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.kbs{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:14px 0}
 #kstats{grid-template-columns:repeat(5,1fr);gap:6px}#kstats .st{padding:8px 4px;text-align:center}
-.kb{padding:16px 6px;font-weight:700;color:#fff;border:none;border-radius:12px}
+.kb{padding:18px 10px 16px;font-weight:800;font-size:17px;color:#fff;border:none;border-radius:20px;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:104px;justify-content:center;box-shadow:inset 0 1px 0 #ffffff38,0 8px 20px #0008;transition:transform .12s}.kb:active{transform:scale(.96)}.kb .ke{font-size:30px;line-height:1;filter:drop-shadow(0 2px 3px #0005)}.kb small{font-size:12px;font-weight:600;opacity:.88}
 #auth,#pay{max-width:380px;margin:0 auto;padding:calc(70px + env(safe-area-inset-top,0px)) 20px}
 #auth h1,#pay h1{font-size:34px;margin-bottom:6px}
 .legal{color:var(--m);font-size:12px;margin-top:18px}.legal a{color:var(--m)}
@@ -105,8 +105,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--a);box-s
 .acts{gap:6px}.acts button,.acts .btn{padding:7px 12px;font-size:13px}
 .acts .g{background:transparent;border-color:transparent;color:var(--m)}
 dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px #000}
-.fabs{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;z-index:25}
-.fabs .btn{padding:13px 18px;box-shadow:0 6px 22px #000c;border-radius:99px;font-size:15px}
+.fabs{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:12px;z-index:26}
+#fabtn{width:62px;height:62px;border-radius:50%;border:none;background:linear-gradient(145deg,#4d8dff,#1f6bff);color:#fff;font-size:38px;font-weight:300;line-height:1;padding:0 0 4px;box-shadow:0 8px 26px #1f6bff66,0 4px 14px #000c;transition:transform .2s}
+.fabs.open #fabtn{transform:rotate(45deg)}
+#fabmenu{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+#fabmenu[hidden]{display:none}
+.fm{display:flex;align-items:center;gap:10px;background:#15171c;color:#fff;border:1px solid #2a2f3a;border-radius:99px;padding:12px 20px 12px 12px;font-size:16px;font-weight:700;box-shadow:0 8px 26px #000c;animation:fmIn .18s ease-out both}
+.fm:nth-child(2){animation-delay:.04s}
+.fm .fi{width:34px;height:34px;border-radius:50%;background:#1f6bff;display:flex;align-items:center;justify-content:center;font-size:17px}
+@keyframes fmIn{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:none}}
+#fabscrim{position:fixed;inset:0;background:#000a;z-index:25}
+#fabscrim[hidden]{display:none}
 .tm{color:var(--a);font-weight:800;font-size:22px;line-height:1.1;margin-bottom:3px}.nxj{display:flex;align-items:center;gap:10px;margin-top:10px;background:#111;border:1px solid var(--b);border-radius:12px;padding:10px 12px}.nxj .tt{font-size:26px;font-weight:800;color:var(--a);white-space:nowrap}.nxj .nn{flex:1;min-width:0}.nxj .nn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nxj button{flex:none;width:40px;height:40px;padding:0;font-size:22px;line-height:1}.lir{display:flex;gap:8px;align-items:center;margin-bottom:8px}.lir>span:first-child{flex:1;min-width:0;display:block}.lir>.cb{flex:none;width:112px}.lir .lp{width:100%}.lir .lx{flex:none;width:38px;height:42px;padding:0;color:var(--m)}.litot{display:flex;justify-content:space-between;align-items:center;margin:2px 0 10px}.litot span{font-size:15px}.litot b{font-size:20px;color:var(--a)}.na{float:right;font-size:12px;color:var(--m);text-transform:none;letter-spacing:0}.na input{width:auto;min-height:0;margin:0 3px 0 0;vertical-align:middle}.row>div{min-width:0}input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:42px}
 .opt small{font-weight:400;opacity:.75;font-size:12px}
 .cb{position:relative;display:block}.cb input{padding-right:38px}
@@ -226,7 +235,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
     </div>
   </div>
 </div>
-<div class="fabs" id="fabs"><button class="btn" id="addq">⚡ Quick</button><button class="btn pri" id="add">+ New customer</button></div>
+<div id="fabscrim" hidden></div><div class="fabs" id="fabs"><div id="fabmenu" hidden><button class="fm" id="addq"><span class="fi">⚡</span>Quick customer</button><button class="fm" id="add"><span class="fi">＋</span>New customer</button></div><button id="fabtn" aria-label="Add customer">+</button></div>
 
 <datalist id="svcs"></datalist>
 
@@ -296,7 +305,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
 
 <dialog id="pdlg">
   <h2 id="pt" style="margin:0 0 4px;font-size:18px">New house</h2>
-  <div class="kbs"><button class="kb" data-r="Sold" style="background:#2f9e44">Sold</button><button class="kb" data-r="Quoted" style="background:#1c7ed6">Quoted/Waiting</button><button class="kb" data-r="Not home" style="background:#f08c00">Not home</button><button class="kb" data-r="No" style="background:#e03131">No</button></div>
+  <div class="kbs"><button class="kb" data-r="Sold" style="background:linear-gradient(145deg,#37c35a,#1f8a3c)"><span class="ke">💵</span>Sold<small>Closed the deal</small></button><button class="kb" data-r="Quoted" style="background:linear-gradient(145deg,#3d93ee,#1a62c2)"><span class="ke">📝</span>Quoted<small>Waiting to hear back</small></button><button class="kb" data-r="Not home" style="background:linear-gradient(145deg,#ffa938,#e07a00)"><span class="ke">🚪</span>Not home<small>Come back later</small></button><button class="kb" data-r="No" style="background:linear-gradient(145deg,#f0545a,#c42429)"><span class="ke">❌</span>No<small>Not interested</small></button></div>
   <div id="pchoice" hidden>
     <div class="sub" style="margin:4px 0 6px">Nice, a sale! How do you want to save this customer?</div>
     <button class="pc btn pri" id="pc_quick">⚡ Quick customer<small>Just name, phone and address</small></button>
@@ -542,7 +551,10 @@ function openForm(r){
   $("f_jobna").checked=!!r.id&&!r.job_date;$("f_timena").checked=!!r.id&&!sn.time;naSync();
   $("f_status").value=r.status||"Lead";$("del").style.display=r.id?"":"none";noteChips();$("dlg").showModal();
 }
-$("add").onclick=()=>openForm();
+function fabClose(){$("fabs").classList.remove("open");$("fabmenu").hidden=true;$("fabscrim").hidden=true}
+$("fabtn").onclick=()=>{const o=!$("fabs").classList.contains("open");$("fabs").classList.toggle("open",o);$("fabmenu").hidden=!o;$("fabscrim").hidden=!o};
+$("fabscrim").onclick=fabClose;
+$("add").onclick=()=>{fabClose();openForm()};
 $("cancel").onclick=()=>$("dlg").close();
 $("save").onclick=()=>{
   const name=$("f_name").value.trim();if(!name){$("f_name").focus();return}
@@ -1122,7 +1134,7 @@ function quickAdd(name,phone,address){
   mutate("ins","customers",newId(),{name,phone,email:"",address:(address||"").trim(),service:"",status:"Lead",price:0,source:"Quick add",job_date:null,follow_up:null,notes:""});
   return true;
 }
-$("addq").onclick=()=>{$("qd_name").value="";$("qd_phone").value="";$("qd_addr").value="";$("qdlg").showModal()};
+$("addq").onclick=()=>{fabClose();$("qd_name").value="";$("qd_phone").value="";$("qd_addr").value="";$("qdlg").showModal()};
 $("qd_cancel").onclick=()=>$("qdlg").close();
 $("qd_save").onclick=()=>{if(!$("qd_name").value.trim()){$("qd_name").focus();return}
   if(quickAdd($("qd_name").value,$("qd_phone").value,$("qd_addr").value))$("qdlg").close()};
@@ -1137,7 +1149,7 @@ document.querySelector(".tabs").onclick=e=>{
   const t=e.target.dataset.tab;if(!t)return;
   document.querySelectorAll(".tabs .chip").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   document.body.classList.toggle("kmode",t==="K");
-  $("tabH").hidden=t!=="H";$("tabC").hidden=t!=="C";$("tabQ").hidden=t!=="Q";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("tabP").hidden=t!=="P";$("fabs").hidden=!(t==="C"||t==="H");
+  $("tabH").hidden=t!=="H";$("tabC").hidden=t!=="C";$("tabQ").hidden=t!=="Q";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("tabP").hidden=t!=="P";$("fabs").hidden=!(t==="C"||t==="H");fabClose();
   if(t==="K")initMap();if(t==="M")mInit();if(t==="P")calcInit();
 };
 </script>
