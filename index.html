@@ -42,6 +42,11 @@ button,.btn{font:inherit;font-size:14px;color:var(--t);background:var(--c);borde
 .fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:13px 20px;box-shadow:0 4px 18px #000}
 dialog{border:1px solid var(--b);border-radius:16px;padding:16px;width:min(94vw,520px);background:#0a0a0a;color:var(--t)}
 dialog::backdrop{background:#000b}
+#mv_cats .mc{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#12151c;border:2px solid #2a3040;border-radius:16px;padding:12px 14px;margin:8px 0;color:#fff}
+#mv_cats .mc .me{font-size:26px}#mv_cats .mc b{display:block;font-size:16px}#mv_cats .mc small{color:#8c97ad;font-size:12px}
+#mv_cats .mc .ck{margin-left:auto;width:26px;height:26px;border-radius:8px;border:2px solid #3a4152;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
+#mv_cats .mc.on{border-color:#2b7fff;background:#10224a}#mv_cats .mc.on .ck{background:#2b7fff;border-color:#2b7fff}
+#mvdlg{background:radial-gradient(500px 300px at 90% 0%,#10306b 0%,#0a0a0a 60%)}
 .empty{text-align:center;color:var(--m);padding:30px 10px}
 #map{height:58vh;min-height:320px;border-radius:12px;border:1px solid var(--b)}
 .kbs{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:14px 0}
@@ -259,11 +264,37 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <div class="row" style="margin-top:12px;justify-content:space-between"><button id="del" style="color:#ff5c5c;flex:none">Delete</button><span style="text-align:right"><button id="cancel">Cancel</button> <button class="pri" id="save">Save</button></span></div>
 </dialog>
 
+<dialog id="mvdlg">
+  <div id="mv_ask" hidden>
+    <div style="font-size:40px;line-height:1">🔥</div>
+    <h2 style="margin:8px 0 6px;font-size:21px">Want a daily motivational quote?</h2>
+    <div class="sub" style="margin-bottom:14px">You'll get a fresh one the first time you open KnockBoard each day. You can turn it off anytime in Settings.</div>
+    <button class="pri" id="mv_yes" style="width:100%;padding:14px;font-size:16px">Yes, motivate me</button>
+    <button id="mv_no" style="width:100%;margin-top:8px;padding:13px">No thanks</button>
+  </div>
+  <div id="mv_pick" hidden>
+    <h2 style="margin:0 0 4px;font-size:20px">What do you want to read?</h2>
+    <div class="sub" style="margin-bottom:10px">Pick one or more. You can change this anytime in Settings.</div>
+    <div id="mv_cats"></div>
+    <div class="sub" id="mv_pm" style="color:#ff6b6b;min-height:18px"></div>
+    <button class="pri" id="mv_start" style="width:100%;padding:14px;font-size:16px">Start my daily quotes</button>
+    <button id="mv_off2" style="width:100%;margin-top:8px;background:none;border:none;color:#8c97ad;font-size:13px" hidden>Turn off daily quotes</button>
+  </div>
+  <div id="mv_show" hidden>
+    <div class="sub" style="text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:#6aa5ff" id="mv_date"></div>
+    <div id="mv_q" style="font-size:25px;line-height:1.3;font-weight:800;margin:14px 0 10px;letter-spacing:-.3px"></div>
+    <div class="sub" id="mv_a" style="margin-bottom:16px"></div>
+    <button class="pri" id="mv_go" style="width:100%;padding:14px;font-size:16px">Let's go</button>
+    <button id="mv_off" style="width:100%;margin-top:8px;background:none;border:none;color:#8c97ad;font-size:13px">Turn off daily quotes</button>
+  </div>
+</dialog>
+
 <dialog id="sdlg">
   <h2 style="margin:0 0 2px;font-size:19px">Settings</h2>
   <div class="sub" id="semail" style="margin-bottom:10px"></div>
   <label>Your business name <span style="text-transform:none;letter-spacing:0">(used in your texts)</span></label><input id="bizname" placeholder="Edwards Window Washing" autocomplete="off" style="margin-bottom:10px">
   <button class="opt" id="editbiz">My business &amp; goals<br><small>Change your trade and what you use KnockBoard for</small></button>
+  <button class="opt" id="motivtog">Daily motivation<br><small id="motivst">Off</small></button>
   <button class="opt" id="manage">Manage plan<br><small>Billing, payment method, cancel</small></button>
   <button class="opt" id="out" style="color:#ff6b6b">Log out</button>
   <div class="row" style="margin-top:8px;justify-content:flex-end"><button id="sclose">Close</button></div>
@@ -387,7 +418,7 @@ async function gate(){
     if(!ok&&r.data)msg="Your subscription isn't active. Start a new one to keep using KnockBoard.";
   }
   $("auth").hidden=true;$("pay").hidden=ok;$("app").hidden=!ok;
-  if(ok){loadAll();applyProf();if(!prof.done&&!$("ob").open)openOb(false)}else $("paymsg").textContent=msg;
+  if(ok){loadAll();applyProf();if(!prof.done&&!$("ob").open)openOb(false);else setTimeout(()=>{if(typeof mvRun==="function")mvRun()},600)}else $("paymsg").textContent=msg;
 }
 sb.auth.onAuthStateChange((_e,s)=>{user=s?s.user:null;
   if(user)setTimeout(gate,0);
@@ -916,7 +947,7 @@ $("obn").onclick=()=>{
   if(obStep===0){if(!obSel.niches.length){$("obm").textContent="Pick at least one (or Other).";return}obStep=1;obRender();return}
   const p={niches:obSel.niches,goals:obSel.goals,done:true};lsSet(K("prof"),p);
   try{Promise.resolve(sb.auth.updateUser({data:{niches:p.niches,goals:p.goals,onboarded:true}})).catch(()=>{})}catch(e){}
-  $("ob").close();applyProf();
+  $("ob").close();applyProf();setTimeout(()=>{if(typeof mvRun==="function")mvRun()},500);
 };
 
 const money2=n=>(n<0?"-":"")+"$"+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -1148,7 +1179,7 @@ $("qd_cancel").onclick=()=>$("qdlg").close();
 $("qd_save").onclick=()=>{if(!$("qd_name").value.trim()){$("qd_name").focus();return}
   if(quickAdd($("qd_name").value,$("qd_phone").value,$("qd_addr").value))$("qdlg").close()};
 /* ---- Settings ---- */
-$("biz").onclick=()=>{$("semail").textContent=user?user.email:"";$("bizname").value=lsGet(K("bizname"),"")||"";$("sdlg").showModal()};
+$("biz").onclick=()=>{$("semail").textContent=user?user.email:"";$("bizname").value=lsGet(K("bizname"),"")||"";mvSt();$("sdlg").showModal()};
 $("bizname").oninput=()=>lsSet(K("bizname"),$("bizname").value.trim());
 $("sclose").onclick=()=>$("sdlg").close();
 $("editbiz").onclick=()=>{$("sdlg").close();openOb(true)};
@@ -1161,6 +1192,35 @@ document.querySelector(".tabs").onclick=e=>{
   $("tabH").hidden=t!=="H";$("tabC").hidden=t!=="C";$("tabQ").hidden=t!=="Q";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("tabP").hidden=t!=="P";$("fabs").hidden=!(t==="C"||t==="H");fabClose();
   if(t==="K")initMap();if(t==="M")mInit();if(t==="P")calcInit();
 };
+
+/* ---- Daily motivation (opt-in, one new quote per day) ---- */
+const MQ=[["Every door you knock gets you closer to a yes. Keep knocking.", "KnockBoard", "m"], ["You, me, or nobody is gonna hit as hard as life. But it ain't about how hard you hit. It's about how hard you can get hit and keep moving forward.", "Rocky Balboa", "rv"], ["You don't need a perfect day. You need a day where you showed up.", "KnockBoard", "r"], ["I can do all things through Christ which strengtheneth me.", "Philippians 4:13 (KJV)", "b"], ["A no today is just a step toward the yes waiting down the street.", "KnockBoard", "u"], ["The impediment to action advances action. What stands in the way becomes the way.", "Marcus Aurelius", "m"], ["Small wins stack up. Log one more house.", "KnockBoard", "m"], ["The best time to follow up was yesterday. The second best is right now.", "KnockBoard", "r"], ["Do, or do not. There is no try.", "Yoda, The Empire Strikes Back", "mv"], ["Your pitch gets better with every door. Get the reps in.", "KnockBoard", "m"], ["Confidence isn't knowing they'll say yes. It's knowing you'll knock anyway.", "KnockBoard", "m"], ["The only way to do great work is to love what you do.", "Steve Jobs", "u"], ["Someone on your route needs exactly what you do. Go find them.", "KnockBoard", "u"], ["Ask, and it shall be given you; seek, and ye shall find; knock, and it shall be opened unto you.", "Matthew 7:7 (KJV)", "b"], ["Hard work is quiet. The results are loud.", "KnockBoard", "m"], ["Get busy living, or get busy dying.", "The Shawshank Redemption", "mv"], ["You are one conversation away from a great day.", "KnockBoard", "u"], ["Be so consistent that luck can't keep up.", "KnockBoard", "m"], ["You miss 100% of the shots you don't take.", "Wayne Gretzky", "m"], ["Don't count the nos. Count the doors.", "KnockBoard", "m"], ["Be strong and of a good courage; be not afraid, neither be thou dismayed: for the Lord thy God is with thee whithersoever thou goest.", "Joshua 1:9 (KJV)", "b"], ["Today's effort is tomorrow's paycheck.", "KnockBoard", "m"], ["Why do we fall? So we can learn to pick ourselves up.", "Alfred, Batman Begins", "uv"], ["Stand tall, smile, and make the ask.", "KnockBoard", "m"], ["The street doesn't care how you feel. Show up anyway and feel better after.", "KnockBoard", "r"], ["Waste no more time arguing about what a good man should be. Be one.", "Marcus Aurelius", "r"], ["Every great business started with someone willing to be told no.", "KnockBoard", "u"], ["And whatsoever ye do, do it heartily, as to the Lord, and not unto men.", "Colossians 3:23 (KJV)", "b"], ["Follow up. Most of your competition won't.", "KnockBoard", "r"], ["Carpe diem. Seize the day, boys. Make your lives extraordinary.", "Dead Poets Society", "uv"], ["Your future customers are saying 'maybe' right now. Turn it into a yes.", "KnockBoard", "m"], ["Do the work you'll thank yourself for later.", "KnockBoard", "r"], ["I've missed more than 9,000 shots in my career. I've lost almost 300 games. I've failed over and over and over again in my life. And that is why I succeed.", "Michael Jordan", "m"], ["Doing the hard things first makes the whole day easier.", "KnockBoard", "r"], ["You're building something. Keep laying bricks.", "KnockBoard", "u"], ["What we do in life echoes in eternity.", "Maximus, Gladiator", "mv"], ["Make today so good that yesterday gets jealous.", "KnockBoard", "u"], ["Seest thou a man diligent in his business? he shall stand before kings.", "Proverbs 22:29 (KJV)", "b"], ["Energy is contagious. Bring it to every door.", "KnockBoard", "m"], ["Well done is better than well said.", "Benjamin Franklin", "r"], ["A quote sent today beats a perfect quote sent next week.", "KnockBoard", "r"], ["Treat every house like it's your best customer.", "KnockBoard", "m"], ["Just keep swimming.", "Dory, Finding Nemo", "uv"], ["The only bad door is the one you skipped.", "KnockBoard", "r"], ["And let us not be weary in well doing: for in due season we shall reap, if we faint not.", "Galatians 6:9 (KJV)", "b"], ["Progress, not perfection. One more house.", "KnockBoard", "m"], ["Either you run the day, or the day runs you.", "Jim Rohn", "r"], ["You got into this to build something of your own. Remember that when it gets hard.", "KnockBoard", "u"], ["Great service sells itself. Keep earning those reviews.", "KnockBoard", "u"], ["Great men are not born great, they grow great.", "The Godfather", "mv"], ["Discipline is choosing what you want most over what you want right now.", "KnockBoard", "r"], ["We suffer more often in imagination than in reality.", "Seneca", "u"], ["Outwork yesterday's version of you.", "KnockBoard", "m"], ["Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee.", "Isaiah 41:10 (KJV)", "b"], ["Be friendly, be fast, be reliable. That's the whole game.", "KnockBoard", "m"], ["Your attitude at the first door sets the tone for the whole day.", "KnockBoard", "m"], ["I can do this all day.", "Steve Rogers, Captain America", "mv"], ["Rain or shine, the people who show up win.", "KnockBoard", "m"], ["I hated every minute of training, but I said, don't quit. Suffer now and live the rest of your life as a champion.", "Muhammad Ali", "r"], ["A hundred small knocks can open one big door.", "KnockBoard", "m"], ["You've handled tougher days than this one.", "KnockBoard", "u"], ["In all labour there is profit: but the talk of the lips tendeth only to penury.", "Proverbs 14:23 (KJV)", "b"], ["Selling is just helping people solve a problem. Go help someone.", "KnockBoard", "u"], ["Never give up. Never surrender!", "Galaxy Quest", "mv"], ["Trust the process, trust the work, trust yourself.", "KnockBoard", "u"], ["Today is a fresh page. Make it count.", "KnockBoard", "u"], ["The way to get started is to quit talking and begin doing.", "Walt Disney", "m"], ["Don't wait for motivation. Start, and it will find you.", "KnockBoard", "r"], ["It's not who I am underneath, but what I do that defines me.", "Batman Begins", "mv"], ["The money is in the follow-up.", "KnockBoard", "r"], ["Commit thy works unto the Lord, and thy thoughts shall be established.", "Proverbs 16:3 (KJV)", "b"], ["Do what you said you'd do. That alone sets you apart.", "KnockBoard", "r"], ["Make the call. Send the text. Knock the door.", "KnockBoard", "m"], ["Energy and persistence conquer all things.", "Benjamin Franklin", "m"], ["Your hustle is your edge. Use it.", "KnockBoard", "m"], ["Hope is a good thing, maybe the best of things, and no good thing ever dies.", "The Shawshank Redemption", "uv"], ["Winners aren't the ones who never hear no. They're the ones who keep going.", "KnockBoard", "m"], ["Be the pro that shows up on time and does it right.", "KnockBoard", "m"], ["He becometh poor that dealeth with a slack hand: but the hand of the diligent maketh rich.", "Proverbs 10:4 (KJV)", "b"], ["Every customer you help is a customer who tells a friend.", "KnockBoard", "u"], ["Genius is one percent inspiration and ninety-nine percent perspiration.", "Thomas Edison", "r"], ["Slow days are for planning. Busy days are for earning. Use both.", "KnockBoard", "m"], ["The last three or four reps is what makes the muscle grow.", "Arnold Schwarzenegger", "r"], ["Believe in the value you bring. Then say it out loud.", "KnockBoard", "u"], ["You work for yourself. That's worth getting up for.", "KnockBoard", "u"], ["Whatsoever thy hand findeth to do, do it with thy might.", "Ecclesiastes 9:10 (KJV)", "b"], ["Make it a day you're proud of by dinner.", "KnockBoard", "u"], ["I fear not the man who has practiced 10,000 kicks once, but the man who has practiced one kick 10,000 times.", "Bruce Lee", "m"], ["One more door. One more quote. One more yes.", "KnockBoard", "m"], ["Hard work beats talent when talent doesn't work hard.", "Tim Notke", "r"], ["The difference between good and great is one more try.", "KnockBoard", "m"], ["Win the morning, win the day.", "KnockBoard", "m"], ["A journey of a thousand miles begins with a single step.", "Lao Tzu", "u"], ["Stay hungry, stay humble, stay knocking.", "KnockBoard", "m"], ["The thoughts of the diligent tend only to plenteousness; but of every one that is hasty only to want.", "Proverbs 21:5 (KJV)", "b"], ["Your next yes could be the very next house.", "KnockBoard", "u"], ["Fall seven times, stand up eight.", "Japanese proverb", "u"], ["Show people you care and the sales take care of themselves.", "KnockBoard", "u"], ["Keep your promises small and your service big.", "KnockBoard", "m"], ["We must all suffer one of two things: the pain of discipline or the pain of regret.", "Jim Rohn", "r"], ["Today you're closer than you were yesterday. Keep moving.", "KnockBoard", "u"], ["Be proud of the work. Be proud of the hustle.", "KnockBoard", "u"], ["But they that wait upon the Lord shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.", "Isaiah 40:31 (KJV)", "b"], ["Nothing will work unless you do.", "Maya Angelou", "r"], ["You're not just selling a service, you're making someone's home better.", "KnockBoard", "u"], ["Consistency beats intensity. Show up again today.", "KnockBoard", "m"], ["Opportunities multiply as they are seized.", "Sun Tzu", "m"], ["You're not behind. You're exactly where today's work has put you. Change the work, change the spot.", "KnockBoard", "u"], ["Nobody is coming to save your business. Good. That means nobody can take it from you either.", "KnockBoard", "r"], ["Don't watch the clock; do what it does. Keep going.", "Sam Levenson", "m"], ["Stop scrolling. Start knocking.", "KnockBoard", "r"], ["For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind.", "2 Timothy 1:7 (KJV)", "b"], ["Excuses don't pay the bills. Reps do.", "KnockBoard", "r"], ["Fortune favors the bold.", "Latin proverb", "m"], ["Your competition is out there right now. Are you?", "KnockBoard", "r"], ["The slow days are not the problem. Doing nothing on them is.", "KnockBoard", "r"], ["The difference between ordinary and extraordinary is that little extra.", "Jimmy Johnson", "m"], ["You don't need more motivation. You need one more door.", "KnockBoard", "r"], ["Commit thy way unto the Lord; trust also in him; and he shall bring it to pass.", "Psalm 37:5 (KJV)", "b"], ["Feeling behind is just a signal to take the next step, not to quit.", "KnockBoard", "u"], ["Dreams don't work unless you do.", "John C. Maxwell", "m"], ["Everyone you admire started out terrible at this. Keep going.", "KnockBoard", "u"], ["You can't control the answer. You can control the number of times you ask.", "KnockBoard", "r"], ["Quality is not an act, it is a habit.", "Will Durant", "r"], ["The money is not in thinking about it. It's in knocking on it.", "KnockBoard", "r"], ["Rest is fine. Quitting is not. Know the difference.", "KnockBoard", "r"], ["Do not wait; the time will never be just right. Start where you stand.", "Napoleon Hill", "u"], ["If it was easy, everybody would be doing it. That's why it pays.", "KnockBoard", "r"], ["The soul of the sluggard desireth, and hath nothing: but the soul of the diligent shall be made fat.", "Proverbs 13:4 (KJV)", "b"], ["Be honest: did you do everything you could yesterday? Then do more today.", "KnockBoard", "r"], ["Perseverance is not a long race; it is many short races one after the other.", "Walter Elliot", "m"], ["The version of you with the business you want is just a lot of doors away.", "KnockBoard", "m"]];
+const MCATS=[["m","💪","Motivational","Push harder, keep knocking"],["u","🌤️","Uplifting","Encouragement and good energy"],["r","🧱","Reality checks","Tough love that snaps you back"],["b","✝️","Bible verses","Scripture for the hustle"],["v","🎬","Movie lines","Big lines from big movies"]];
+const mvOn=()=>{const v=lsGet(K("motiv"),null);if(v!==null)return v;const m=user&&user.user_metadata&&user.user_metadata.motiv;return typeof m==="boolean"?m:null};
+const mvCats=()=>{let c=lsGet(K("motivcats"),null);if(!Array.isArray(c)||!c.length){const m=user&&user.user_metadata&&user.user_metadata.motiv_cats;c=Array.isArray(m)&&m.length?m:["m","u"]}return c.filter(x=>MCATS.some(k=>k[0]===x))};
+function mvSet(v,cats){lsSet(K("motiv"),v);const data={motiv:v};if(cats){lsSet(K("motivcats"),cats);data.motiv_cats=cats}try{Promise.resolve(sb.auth.updateUser({data})).catch(()=>{})}catch(e){}mvSt()}
+function mvSt(){const el=$("motivst");if(!el)return;if(mvOn()!==true){el.textContent="Off · tap to turn on";return}el.textContent="On · "+mvCats().map(c=>MCATS.find(k=>k[0]===c)[2]).join(", ")}
+function mvQuote(){const cs=mvCats(),pool=MQ.filter(q=>[...q[2]].some(c=>cs.includes(c)));const P=pool.length?pool:MQ;const d=new Date(),dn=Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5);let h=0;const id=String(user&&user.id||"x");for(const c of id)h=(h*31+c.charCodeAt(0))%P.length;return P[(dn+h)%P.length]}
+function mvShow(){$("mv_ask").hidden=true;$("mv_pick").hidden=true;$("mv_show").hidden=false;$("mv_date").textContent=new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});const q=mvQuote();$("mv_q").textContent="“"+q[0]+"”";$("mv_a").textContent="— "+q[1];lsSet(K("motivlast"),today());if(!$("mvdlg").open)$("mvdlg").showModal()}
+let mvSel=[];
+function mvPickDraw(){$("mv_cats").innerHTML=MCATS.map(k=>`<button type="button" class="mc ${mvSel.includes(k[0])?"on":""}" data-c="${k[0]}"><span class="me">${k[1]}</span><span><b>${k[2]}</b><small>${k[3]}</small></span><span class="ck">${mvSel.includes(k[0])?"✓":""}</span></button>`).join("")}
+function mvPick(editing){mvSel=[...mvCats()];$("mv_pm").textContent="";$("mv_ask").hidden=true;$("mv_show").hidden=true;$("mv_pick").hidden=false;$("mv_off2").hidden=!(editing&&mvOn()===true);$("mv_start").textContent=editing?"Save":"Start my daily quotes";mvPickDraw();if(!$("mvdlg").open)$("mvdlg").showModal()}
+function mvRun(){
+  if(!user||$("app").hidden||!prof.done||$("ob").open||$("mvdlg").open)return;
+  const v=mvOn();
+  if(v===null){$("mv_ask").hidden=false;$("mv_show").hidden=true;$("mv_pick").hidden=true;$("mvdlg").showModal();return}
+  if(v===true&&lsGet(K("motivlast"),"")!==today())mvShow();
+}
+$("mv_cats").onclick=e=>{const b=e.target.closest(".mc");if(!b)return;const c=b.dataset.c,i=mvSel.indexOf(c);i>=0?mvSel.splice(i,1):mvSel.push(c);$("mv_pm").textContent="";mvPickDraw()};
+$("mv_yes").onclick=()=>mvPick(false);
+$("mv_start").onclick=()=>{if(!mvSel.length){$("mv_pm").textContent="Pick at least one.";return}mvSet(true,[...mvSel]);mvShow()};
+$("mv_off2").onclick=()=>{mvSet(false);$("mvdlg").close()};
+$("mv_no").onclick=()=>{mvSet(false);$("mvdlg").close()};
+$("mv_go").onclick=()=>$("mvdlg").close();
+$("mv_off").onclick=()=>{mvSet(false);$("mvdlg").close()};
+$("mvdlg").addEventListener("cancel",()=>{if(mvOn()===null)lsSet(K("motiv"),false)});
+$("motivtog").onclick=()=>{$("sdlg").close();mvPick(true)};
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(mvRun,300)});
 </script>
 </body>
 </html>
