@@ -490,7 +490,7 @@ function render(){
   $("chips").innerHTML=["All",...ST].map(s=>`<button class="chip ${s===filter?"on":""}" data-s="${s}">${s}${s==="All"?"":" ("+customers.filter(r=>r.status===s).length+")"}</button>`).join("");
   const list=customers.filter(r=>(filter==="All"||r.status===filter)&&(!q||[r.name,r.phone,r.address,r.email].join(" ").toLowerCase().includes(q)))
     .sort((a,b)=>(a.follow_up||"9999").localeCompare(b.follow_up||"9999"));
-  vis=list.filter(r=>(r.phone||"").replace(/\D/g,"")).map(r=>r.id);
+  vis=list.filter(r=>(r.phone||"").replace(/\D/g,"")).map(r=>r.id);nph=list.filter(r=>!(r.phone||"").replace(/\D/g,""));
   for(const id of [...sel])if(!customers.some(c=>c.id===id))sel.delete(id);
   updSel();
   $("list").innerHTML=list.length?list.map(r=>{
@@ -579,7 +579,7 @@ $("list").onclick=e=>{
 };
 
 /* ---------- Revenue + texting ---------- */
-let vis=[];const sel=new Set();
+let vis=[],nph=[];const sel=new Set();
 function revCalc(pins,now){
   const sold=pins.filter(p=>p.result==="Sold"),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()),
     wk=new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()-d0.getDay()),mo=new Date(now.getFullYear(),now.getMonth(),1),
@@ -614,7 +614,8 @@ function updSel(){
   $("grp").textContent="Group text"+(ok?" ("+ok+")":"");$("one").textContent="One by one"+(pk.length?" ("+pk.length+")":"");
   const msgs=[];
   if(dup>0)msgs.push(dup+" selected "+(dup>1?"customers share":"customer shares")+" a phone number with someone else, so Group text sends to "+ok+" unique numbers.");
-  if(nop.length)msgs.push(nop.length+" selected "+(nop.length>1?"customers have":"customer has")+" no phone number and will be skipped: "+nop.map(r=>r.name||"Unnamed").join(", ")+".");
+  if(nph.length)msgs.push(nph.length+(nph.length>1?" customers in this list have":" customer in this list has")+" no phone number, so can't be texted: "+nph.map(r=>r.name||"Unnamed").join(", ")+".");
+  else if(nop.length)msgs.push(nop.length+" selected "+(nop.length>1?"customers have":"customer has")+" no phone number and will be skipped: "+nop.map(r=>r.name||"Unnamed").join(", ")+".");
   const nn=$("selnote");nn.hidden=!msgs.length;nn.textContent=msgs.join(" ");
 }
 $("selall").onclick=()=>{const all=vis.length&&vis.every(id=>sel.has(id));vis.forEach(id=>all?sel.delete(id):sel.add(id));render()};
