@@ -189,6 +189,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
     <input id="q" placeholder="Search name, phone, address">
     <div class="chips" id="chips"></div>
     <div class="sendrow"><button id="selall">Select all</button><button id="grp">Group text</button><button id="one">One by one</button></div>
+    <div id="selnote" class="sub" style="margin-bottom:8px;color:#f08c00" hidden></div>
     <div class="sub" style="margin-bottom:10px">Group text puts everyone in one thread (no names). One by one opens a separate message for each customer; you tap Send in Messages for each.</div>
     <div id="list"></div>
   </div>
@@ -604,14 +605,21 @@ const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform===
 const smsHref=(nums,body)=>"sms:"+nums.join(",")+(isIOS?"&":"?")+"body="+encodeURIComponent(body);
 const phoneOf=r=>(r.phone||"").replace(/[^\d+]/g,"");
 const picked=()=>customers.filter(r=>sel.has(r.id)&&phoneOf(r));
+const numKey=r=>{const d=(r.phone||"").replace(/\D/g,"");return d.length===11&&d[0]==="1"?d.slice(1):d};
+const uniqPicked=()=>{const seen=new Set();return picked().filter(r=>{const k=numKey(r);if(seen.has(k))return false;seen.add(k);return true})};
 function updSel(){
   const n=sel.size,all=vis.length&&vis.every(id=>sel.has(id));
   $("selall").textContent=all?"Clear all":"Select all";
-  $("grp").textContent="Group text"+(n?" ("+n+")":"");$("one").textContent="One by one"+(n?" ("+n+")":"");
+  const pk=picked(),ok=uniqPicked().length,dup=pk.length-ok,nop=customers.filter(r=>sel.has(r.id)&&!phoneOf(r));
+  $("grp").textContent="Group text"+(ok?" ("+ok+")":"");$("one").textContent="One by one"+(pk.length?" ("+pk.length+")":"");
+  const msgs=[];
+  if(dup>0)msgs.push(dup+" selected "+(dup>1?"customers share":"customer shares")+" a phone number with someone else, so Group text sends to "+ok+" unique numbers.");
+  if(nop.length)msgs.push(nop.length+" selected "+(nop.length>1?"customers have":"customer has")+" no phone number and will be skipped: "+nop.map(r=>r.name||"Unnamed").join(", ")+".");
+  const nn=$("selnote");nn.hidden=!msgs.length;nn.textContent=msgs.join(" ");
 }
 $("selall").onclick=()=>{const all=vis.length&&vis.every(id=>sel.has(id));vis.forEach(id=>all?sel.delete(id):sel.add(id));render()};
 $("tpl").oninput=()=>lsSet(K("tpl"),$("tpl").value);
-$("grp").onclick=()=>{const p=picked();if(!p.length){alert("Tap the boxes next to customers first, or tap Select all.");return}
+$("grp").onclick=()=>{const p=uniqPicked();if(!p.length){alert("Tap the boxes next to customers first, or tap Select all.");return}
   location.href=smsHref(p.map(phoneOf),fillTpl($("tpl").value||DEFTPL,"there"))};
 let oq=[],oi=0,oadv=false;
 function showO(){
