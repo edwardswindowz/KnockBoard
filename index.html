@@ -1328,8 +1328,14 @@ function buildDoc(kind,R){
   if(kind==="q"&&R.plan&&R.plan.p>0){p.pl=PLANL[R.plan.m];p.pp=R.plan.p}
   return{p,url:DOCBASE+"#"+b64u(p),name,phone:R.phone,email:R.email,kind,tot,no,rec:R};
 }
-function openDoc(kind,R){
-  R=R||formRec();const D=buildDoc(kind,R);if(!D)return;curDoc=D;
+const rid=n=>{const a="abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";let o="";const b=new Uint8Array(n);(window.crypto||{getRandomValues:x=>x.forEach((_,i)=>x[i]=Math.random()*256)}).getRandomValues(b);b.forEach(x=>o+=a[x%a.length]);return o};
+async function shortUrl(p,longUrl){
+  if(!navigator.onLine)return longUrl;
+  try{const id=rid(10),{error}=await sb.from("docs").insert({id,owner:user.id,data:p});if(!error)return DOCBASE+"?d="+id}catch(e){}
+  return longUrl}
+async function openDoc(kind,R){
+  R=R||formRec();const D=buildDoc(kind,R);if(!D)return;
+  D.url=await shortUrl(D.p,D.url);curDoc=D;
   const c=payCfg(),q=kind==="q",fn=firstName(D.name),biz=bizN();
   D.msg=q?`Hi ${fn}${biz?", it's "+biz:""}! Here's your quote for ${money(D.tot)}. You can look it over and accept it right on your phone: ${D.url}`
           :`Hi ${fn}${biz?", it's "+biz:""}! Here's your invoice for ${money(D.tot)}. You can pay online here: ${D.url}`;

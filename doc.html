@@ -25,12 +25,17 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const money=n=>"$"+(+n||0).toLocaleString(undefined,{minimumFractionDigits:(+n%1?2:0),maximumFractionDigits:2});
 const safeUrl=u=>/^https:\/\//i.test(u||"")?u:"";
 let P=null;
-try{let h=location.hash.slice(1).replace(/-/g,"+").replace(/_/g,"/");while(h.length%4)h+="=";const bin=atob(h),by=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)by[i]=bin.charCodeAt(i);P=JSON.parse(new TextDecoder().decode(by))}catch(e){}
+function fromHash(){try{let h=location.hash.slice(1).replace(/-/g,"+").replace(/_/g,"/");while(h.length%4)h+="=";const bin=atob(h),by=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)by[i]=bin.charCodeAt(i);return JSON.parse(new TextDecoder().decode(by))}catch(e){return null}}
+async function load(){
+  const id=new URLSearchParams(location.search).get("d");
+  if(id){try{const r=await fetch(SB+"/rest/v1/rpc/get_doc",{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json"},body:JSON.stringify({p_id:id})});if(r.ok){const j=await r.json();if(j&&j.it)return j}}catch(e){}}
+  return fromHash();
+}
 const fmtDate=d=>{try{const[a,b,c]=d.split("-").map(Number);return new Date(a,b-1,c).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}catch(e){return d||""}};
 const fmtT=t=>{if(!t)return"";const[h,m]=t.split(":").map(Number);return(h%12||12)+":"+String(m).padStart(2,"0")+(h<12?" AM":" PM")};
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-if(!P||!P.it){app.innerHTML='<div class="card"><h1>This link is not valid</h1><p class="sub">Ask the business to send it again.</p></div>'}
+load().then(p=>{P=p;if(!P||!P.it){app.innerHTML='<div class="card"><h1>This link is not valid</h1><p class="sub">Ask the business to send it again.</p></div>'}
 else{
   const q=P.k==="q";document.title=(q?"Quote ":"Invoice ")+P.n+" from "+P.b;
   const items=P.it.map(x=>`<div class="row"><span>${esc(x[0])}</span><b>${money(x[1])}</b></div>`).join("");
@@ -76,4 +81,5 @@ else{
     };
   }
 }
+});
 </script></body></html>
