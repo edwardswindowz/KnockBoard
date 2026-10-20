@@ -13,7 +13,7 @@ label{display:block;font-size:13px;font-weight:700;color:var(--m);margin:12px 0 
 input[type=text]{width:100%;padding:14px;border:1.5px solid #c9d2e0;border-radius:12px;font-size:20px;font-family:"Snell Roundhand","Segoe Script","Brush Script MT",cursive;background:#fff;color:var(--t)}
 .agree{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:14px;color:var(--t)}.agree input{width:22px;height:22px;margin-top:1px;flex:none}
 .btn{display:block;width:100%;text-align:center;text-decoration:none;border:none;border-radius:14px;padding:16px;font-size:17px;font-weight:800;margin-top:14px;cursor:pointer;color:#fff;background:var(--a)}
-.btn[disabled]{opacity:.45;cursor:default}.btn.sq{background:#0b1220}.btn.ok{background:var(--ok)}
+.btn[disabled]{opacity:.45;cursor:default}.btn.sq{background:#0b1220}.btn.cash{background:#00c244}.btn.venmo{background:#3d95ce}.zelle{margin-top:16px;padding:14px;border:1.5px solid #c9d2e0;border-radius:14px}.zv{font-size:20px;font-weight:800;margin:6px 0;word-break:break-all}.btn.zc{background:#6d1ed4;margin-top:8px;padding:13px}.btn.ok{background:var(--ok)}
 .ok-box{background:#e8f8ee;border:1px solid #b6e6c7;color:#14532d;border-radius:14px;padding:16px;font-weight:600}
 .err{background:#fff1f0;border:1px solid #ffc9c4;color:#8a1c12;border-radius:14px;padding:14px;margin-top:12px;font-size:14px}
 .ft{text-align:center;color:var(--m);font-size:12px;margin-top:22px}.ft a{color:var(--m)}
@@ -53,15 +53,19 @@ else{
       <label class="agree"><input type="checkbox" id="ag"><span>I accept this quote for ${money(P.t)} and authorize ${esc(P.b)} to do the work described above. Typing my name is my electronic signature.</span></label>
       <button class="btn ok" id="go" disabled>Accept &amp; sign</button><div id="msg"></div>`}</div>`;
   }else{
-    const sq=safeUrl(P.sq),st=safeUrl(P.st);
-    h+=`<div class="card"><div class="k">Pay online</div><p class="sub" style="margin:6px 0 0">Amount due: <b style="color:var(--t)">${money(P.t)}</b>${sq||st?". If the page asks for an amount, enter "+money(P.t)+".":""}</p>
+    const sq=safeUrl(P.sq),st=safeUrl(P.st),cs=String(P.cs||"").replace(/[^A-Za-z0-9_.-]/g,""),vm=String(P.vm||"").replace(/[^A-Za-z0-9_.-]/g,""),zl=String(P.zl||"").slice(0,80),amt=(+P.t||0).toFixed(2).replace(/\.00$/,""),any=sq||st||cs||vm||zl;
+    h+=`<div class="card"><div class="k">Pay online</div><div style="margin:10px 0 0;font-size:34px;font-weight:900;letter-spacing:-.5px">${money(P.t)}</div><div class="sub" style="margin:2px 0 0">Amount due</div>${sq||st?`<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#fff4d6;color:#6b4a00;font-weight:700;font-size:15px;line-height:1.4">When the payment page asks for an amount, enter exactly ${money(P.t)}.</div>`:""}
       ${st?`<a class="btn" href="${esc(st)}" rel="noopener">Pay ${money(P.t)} by card</a>`:""}
       ${sq?`<a class="btn sq" href="${esc(sq)}" rel="noopener">Pay ${money(P.t)} with Square</a>`:""}
-      ${!sq&&!st?`<p>To pay, contact ${esc(P.b)}${contact?": "+contact:""}.</p>`:""}
+      ${cs?`<a class="btn cash" href="https://cash.app/$${esc(cs)}/${esc(amt)}" rel="noopener">Pay ${money(P.t)} with Cash App</a>`:""}
+      ${vm?`<a class="btn venmo" href="https://venmo.com/${esc(vm)}?txn=pay&amp;amount=${esc(amt)}&amp;note=${encodeURIComponent("Invoice "+P.n)}" rel="noopener">Pay ${money(P.t)} with Venmo</a>`:""}
+      ${zl?`<div class="zelle"><b>Pay with Zelle</b><div class="sub">Open your bank app, tap Zelle, and send ${money(P.t)} to:</div><div class="zv" id="zv">${esc(zl)}</div><button class="btn zc" id="zc" type="button">Copy Zelle info</button></div>`:""}
+      ${!any?`<p>To pay, contact ${esc(P.b)}${contact?": "+contact:""}.</p>`:""}
       ${P.pn?`<p class="sub" style="margin-top:14px">${esc(P.pn)}</p>`:""}</div>`;
   }
   h+=`<div class="ft">Sent with <a href="https://knockboard.org">KnockBoard</a></div>`;
   app.innerHTML=h;
+  if($("zc"))$("zc").onclick=async()=>{const t=$("zv").textContent;try{await navigator.clipboard.writeText(t);$("zc").textContent="Copied!"}catch(e){$("zc").textContent="Long-press the number above to copy"}};
   if(q&&!$("go")===false){
     const nm=$("nm"),ag=$("ag"),go=$("go"),msg=$("msg"),upd=()=>go.disabled=!(nm.value.trim().length>=2&&ag.checked);nm.oninput=upd;ag.onchange=upd;
     go.onclick=async()=>{

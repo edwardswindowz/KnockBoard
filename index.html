@@ -251,7 +251,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
     </div>
   </div>
 </div>
-<div id="fabscrim" hidden></div><div class="fabs" id="fabs"><div id="fabmenu" hidden><button class="fm" id="addq"><span class="fi">⚡</span>Quick customer</button><button class="fm" id="add"><span class="fi">＋</span>New customer</button></div><button id="fabtn" aria-label="Add customer">+</button></div>
+<div id="fabscrim" hidden></div><div class="fabs" id="fabs"><div id="fabmenu" hidden><button class="fm" id="addqt"><span class="fi">📝</span>New quote</button><button class="fm" id="addin"><span class="fi">🧾</span>New invoice</button><button class="fm" id="addq"><span class="fi">⚡</span>Quick customer</button><button class="fm" id="add"><span class="fi">＋</span>New customer</button></div><button id="fabtn" aria-label="Add customer">+</button></div>
 
 <datalist id="svcs"></datalist>
 
@@ -325,13 +325,38 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
 
 <dialog id="paydlg">
   <h2 style="margin:0 0 4px;font-size:19px">Payments &amp; invoices</h2>
-  <div class="sub" style="margin-bottom:10px">Paste your payment links. Customers can pay with Square, Stripe, or both. Create them in your Square or Stripe dashboard (a payment link that lets the customer enter the amount works best).</div>
+  <div class="sub" style="margin-bottom:10px">Add any way you want to get paid. Customers see only the ones you fill in. Square and Stripe need a payment link from your account (use one where the buyer sets the price). Cash App, Venmo and Zelle just need your name or number.</div>
   <label>Square payment link</label><input id="pl_sq" placeholder="https://square.link/u/..." autocomplete="off" autocapitalize="off" inputmode="url">
   <label>Stripe payment link</label><input id="pl_st" placeholder="https://buy.stripe.com/..." autocomplete="off" autocapitalize="off" inputmode="url">
+  <label>Cash App <span style="text-transform:none;letter-spacing:0">($cashtag)</span></label><input id="pl_cs" placeholder="$yourname" autocomplete="off" autocapitalize="off">
+  <label>Venmo <span style="text-transform:none;letter-spacing:0">(@username)</span></label><input id="pl_vm" placeholder="@yourname" autocomplete="off" autocapitalize="off">
+  <label>Zelle <span style="text-transform:none;letter-spacing:0">(phone or email)</span></label><input id="pl_zl" placeholder="336-555-0100 or you@email.com" autocomplete="off" autocapitalize="off">
   <label>Your phone <span style="text-transform:none;letter-spacing:0">(shown on quotes and invoices)</span></label><input id="pl_ph" type="tel" autocomplete="off">
   <label>Your email <span style="text-transform:none;letter-spacing:0">(optional)</span></label><input id="pl_em" type="email" autocomplete="off" autocapitalize="off">
   <label>Note on invoices <span style="text-transform:none;letter-spacing:0">(optional)</span></label><input id="pl_nt" placeholder="Thank you for your business!" autocomplete="off">
   <div class="row" style="margin-top:12px;justify-content:flex-end"><button id="pl_x">Cancel</button> <button class="btn pri" id="pl_s">Save</button></div>
+</dialog>
+
+<dialog id="ndlg">
+  <h2 style="margin:0 0 8px;font-size:19px" id="nd_t">New quote</h2>
+  <input id="nd_name" list="nd_list" placeholder="Customer name" autocomplete="off"><datalist id="nd_list"></datalist>
+  <input id="nd_phone" type="tel" placeholder="Phone" style="margin-top:8px">
+  <input id="nd_email" type="email" placeholder="Email (optional)" style="margin-top:8px">
+  <input id="nd_addr" placeholder="Address (optional)" style="margin-top:8px">
+  <div class="sub" style="margin:10px 0 4px">Items &amp; prices</div>
+  <div id="nd"></div>
+  <div class="litot"><button type="button" class="mini" id="nd_add">+ Add item</button><span>Total <b id="nd_tot">$0</b></span></div>
+  <input id="nd_svc" type="hidden"><input id="nd_price" type="hidden">
+  <div class="row" style="margin-top:12px;justify-content:flex-end"><button id="nd_x">Cancel</button> <button class="btn pri" id="nd_go">Continue</button></div>
+</dialog>
+
+<dialog id="qidlg">
+  <h2 style="margin:0 0 4px;font-size:19px">Quote items</h2>
+  <div class="sub" id="qi_who" style="margin-bottom:8px">Price each part of the job. The customer sees every line and the total.</div>
+  <div id="qi"></div>
+  <div class="litot"><button type="button" class="mini" id="qi_add">+ Add item</button><span>Total <b id="qi_tot">$0</b></span></div>
+  <input id="qi_svc" type="hidden"><input id="qi_price" type="hidden">
+  <div class="row" style="margin-top:12px;justify-content:flex-end"><button id="qi_x">Cancel</button> <button class="btn pri" id="qi_go">Continue</button></div>
 </dialog>
 
 <dialog id="docdlg">
@@ -581,7 +606,7 @@ function render(){
       ${r.follow_up?`<div class="sub ${late?"due":""}">${["Paid","Done"].includes(r.status)?"Rebook reminder":"Follow up"}: ${esc(r.follow_up)}</div>`:""}
       ${splitNote(r.notes).rest?`<div class="sub">${esc(splitNote(r.notes).rest)}</div>`:""}</div></div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
       <div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>`:""}
-      ${+r.price>0&&["Lead","Quoted"].includes(r.status)?`<button data-dq="${r.id}">Send quote</button>`:""}${+r.price>0&&["Scheduled","Done","Paid"].includes(r.status)?`<button data-di="${r.id}">Send invoice</button>`:""}
+      ${["Lead","Quoted"].includes(r.status)?`<button data-dq="${r.id}">Send quote</button>`:""}${+r.price>0&&["Scheduled","Done","Paid"].includes(r.status)?`<button data-di="${r.id}">Send invoice</button>`:""}
       ${r.address?`<a class="btn g" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}
       <button class="g" data-share="${r.id}">Share</button>${r.status==="Paid"&&ph?`<button data-rv="${r.id}">Ask for review</button>`:""}${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button class="g" data-edit="${r.id}">Edit</button></div></div>`}).join("")
     :`<div class="empty">No customers yet. Tap “+ New customer” or log a sale on the map.</div>`;
@@ -619,7 +644,7 @@ function makeLI(pre,hs,hp){
   $(pre+"_add").onclick=()=>{o.LI.push({n:"",p:""});o.render();const el=$(pre+"_s"+(o.LI.length-1));if(el)el.focus()};
   $(pre).onclick=e=>{const i=e.target.dataset.rm;if(i==null)return;o.LI.splice(+i,1);o.render()};
   return o}
-const fLI=makeLI("li","f_svc","f_price"),pLI=makeLI("pl","p_svc","p_price");
+const fLI=makeLI("li","f_svc","f_price"),pLI=makeLI("pl","p_svc","p_price"),qLI=makeLI("qi","qi_svc","qi_price"),nLI=makeLI("nd","nd_svc","nd_price");
 const itemsLine=r=>{const it=splitNote(r.notes).items;return it&&it.length>1?it.map(x=>x[0]+" "+money(x[1])).join(" · "):""};
 function fmtT(t){if(!t)return"";const[h,m]=t.split(":").map(Number);return(h%12||12)+":"+String(m).padStart(2,"0")+(h<12?" AM":" PM")}
 function naSync(){["job","time"].forEach(k=>{const c=$("f_"+k+"na"),i=$("f_"+k);if(c.checked)i.value="";i.disabled=c.checked;i.style.opacity=c.checked?.4:1})}
@@ -654,7 +679,7 @@ $("list").onclick=e=>{
   if(ed)openForm(customers.find(r=>r.id===ed));
   if(adv){const r=customers.find(r=>r.id===adv);if(r){const ns=ST[ST.indexOf(r.status)+1],u={status:ns};if(["Done","Paid"].includes(ns)&&r.job_date&&!r.follow_up)u.follow_up=rebookDate(r.job_date,r.service,(splitNote(r.notes).plan||{}).m||0);mutate("upd","customers",adv,u)}}
   if(e.target.dataset.quote){const r=customers.find(r=>r.id===e.target.dataset.quote),ph=r&&(r.phone||"").replace(/[^\d+]/g,"");if(ph)location.href=smsHref([ph],qTxt(r))}
-  if(e.target.dataset.dq){const r=customers.find(r=>r.id===e.target.dataset.dq);if(r)openDoc("q",cardRec(r))}
+  if(e.target.dataset.dq){const r=customers.find(r=>r.id===e.target.dataset.dq);if(r)openQuoteItems(r)}
   if(e.target.dataset.di){const r=customers.find(r=>r.id===e.target.dataset.di);if(r)openDoc("i",cardRec(r))}
   if(e.target.dataset.rv)askReview(e.target.dataset.rv);
   if(e.target.dataset.share)shareJob(e.target.dataset.share);
@@ -958,7 +983,7 @@ const NICHES={
   pest:{l:"Pest control",svc:["General pest control","Quarterly service","Termite treatment","Rodent control","Mosquito treatment","One-time treatment"],costs:["Chemicals / product","Technician labor","Vehicle / fuel","Ad / lead cost","Other costs"]},
   solar:{l:"Solar",svc:["Residential solar install","Battery add-on","Panel cleaning","Roof-mount system","Ground-mount system","Consultation"],costs:["Equipment / panels","Install labor","Permits / interconnection","Sales commission","Ad / lead cost","Other costs"]},
   window:{l:"Window cleaning",svc:["Exterior windows","Interior + exterior windows","Easy Breeze","Screens & tracks","Gutter cleaning","Solar panel cleaning","Commercial storefront"],costs:["Supplies / soap","Labor","Vehicle / fuel","Ad / lead cost","Other costs"]},
-  pressure:{l:"Pressure washing",svc:["House wash","Driveway cleaning","Deck / fence cleaning","Roof wash","Concrete / patio","Commercial wash"],costs:["Supplies / chemicals","Equipment / fuel","Labor","Ad / lead cost","Other costs"]},
+  pressure:{l:"Pressure washing",svc:["House wash","Siding wash","Driveway cleaning","Steps / stairs","Walkway / sidewalk","Patio cleaning","Deck cleaning","Fence cleaning","Deck / fence cleaning","Roof wash","Concrete / patio","Garage floor","Commercial wash"],costs:["Supplies / chemicals","Equipment / fuel","Labor","Ad / lead cost","Other costs"]},
   other:{l:"Other",svc:["Estimate","Service call","Repeat service"],costs:["Materials / supplies","Labor","Vehicle / fuel","Ad / lead cost","Other costs"]}
 };
 const GOALS=[["jobs","Manage customers & jobs"],["knock","Door knocking & map"],["quote","Measure & quote properties"],["profit","Track revenue & profit"]];
@@ -1305,11 +1330,12 @@ instBar();instSettings();addEventListener("appinstalled",()=>{instBar();instSett
 const DOCBASE=location.protocol==="file:"?"doc.html":"https://knockboard.org/doc.html";
 const payCfg=()=>{const l=lsGet(K("paycfg"),null);if(l)return l;const m=(user&&user.user_metadata&&user.user_metadata.paycfg)||{};return m};
 const fixUrl=u=>{u=(u||"").trim();return u&&!/^https?:\/\//i.test(u)?"https://"+u:u};
-function paySt(){const c=payCfg(),n=[c.sq&&"Square",c.st&&"Stripe"].filter(Boolean);$("paysm").textContent=n.length?"Customers can pay with "+n.join(" or "):"Add your Square or Stripe link"}
+const payNames=c=>[c.sq&&"Square",c.st&&"Stripe",c.cs&&"Cash App",c.vm&&"Venmo",c.zl&&"Zelle"].filter(Boolean);
+function paySt(){const n=payNames(payCfg());$("paysm").textContent=n.length?"Customers can pay with "+n.join(", "):"Add Square, Stripe, Cash App, Venmo or Zelle"}
 function kbToast(m){const t=$("kbtoast");t.textContent=m;t.hidden=false;clearTimeout(kbToast.h);kbToast.h=setTimeout(()=>t.hidden=true,6000)}
-$("paybtn").onclick=()=>{const c=payCfg();$("pl_sq").value=c.sq||"";$("pl_st").value=c.st||"";$("pl_ph").value=c.ph||"";$("pl_em").value=c.em||"";$("pl_nt").value=c.nt||"";$("paydlg").showModal()};
+$("paybtn").onclick=()=>{const c=payCfg();$("pl_sq").value=c.sq||"";$("pl_st").value=c.st||"";$("pl_cs").value=c.cs||"";$("pl_vm").value=c.vm||"";$("pl_zl").value=c.zl||"";$("pl_ph").value=c.ph||"";$("pl_em").value=c.em||"";$("pl_nt").value=c.nt||"";$("paydlg").showModal()};
 $("pl_x").onclick=()=>$("paydlg").close();
-$("pl_s").onclick=()=>{const c={sq:fixUrl($("pl_sq").value),st:fixUrl($("pl_st").value),ph:$("pl_ph").value.trim(),em:$("pl_em").value.trim(),nt:$("pl_nt").value.trim()};
+$("pl_s").onclick=()=>{const c={sq:fixUrl($("pl_sq").value),st:fixUrl($("pl_st").value),cs:$("pl_cs").value.trim().replace(/^\$+/,"").replace(/[^A-Za-z0-9_.-]/g,""),vm:$("pl_vm").value.trim().replace(/^@+/,"").replace(/[^A-Za-z0-9_.-]/g,""),zl:$("pl_zl").value.trim().slice(0,80),ph:$("pl_ph").value.trim(),em:$("pl_em").value.trim(),nt:$("pl_nt").value.trim()};
   lsSet(K("paycfg"),c);try{Promise.resolve(sb.auth.updateUser({data:{paycfg:c}})).catch(()=>{})}catch(e){}paySt();$("paydlg").close()};
 const b64u=o=>{const b=new TextEncoder().encode(JSON.stringify(o));let s="";b.forEach(x=>s+=String.fromCharCode(x));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
 let curDoc=null;
@@ -1324,7 +1350,7 @@ function buildDoc(kind,R){
   const name=R.name||"Customer",c=payCfg(),it=R.it,tot=it.reduce((a,x)=>a+(+x[1]||0),0);
   if(!tot){alert("Add at least one service with a price first.");return null}
   const d=new Date(),mmdd=String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0"),no=(kind==="q"?"Q-":"INV-")+String(id).replace(/-/g,"").slice(0,4).toUpperCase()+mmdd;
-  const p={k:kind,b:bizN()||"Your service provider",bp:c.ph||"",be:c.em||"",c:name,a:R.address,it,t:tot,d:today(),n:no,u:user.id,cid:id,sq:c.sq||"",st:c.st||"",pn:c.nt||"",jd:R.jd,tm:R.tm};
+  const p={k:kind,b:bizN()||"Your service provider",bp:c.ph||"",be:c.em||"",c:name,a:R.address,it,t:tot,d:today(),n:no,u:user.id,cid:id,sq:c.sq||"",st:c.st||"",cs:c.cs||"",vm:c.vm||"",zl:c.zl||"",pn:c.nt||"",jd:R.jd,tm:R.tm};
   if(kind==="q"&&R.plan&&R.plan.p>0){p.pl=PLANL[R.plan.m];p.pp=R.plan.p}
   return{p,url:DOCBASE+"#"+b64u(p),name,phone:R.phone,email:R.email,kind,tot,no,rec:R};
 }
@@ -1344,7 +1370,7 @@ async function openDoc(kind,R){
   const ph=(D.phone||"").replace(/[^\d+]/g,"");
   $("dd_sms").hidden=!ph;$("dd_sms2").textContent=D.phone;$("dd_em").hidden=!D.email;$("dd_em2").textContent=D.email;
   $("dd_paid").hidden=q||R.status==="Paid";
-  $("dd_n").textContent=q?"They tap Accept and type their name to sign. You'll get a notice in KnockBoard when they do.":(c.sq||c.st?"They pay with "+[c.sq&&"Square",c.st&&"Stripe"].filter(Boolean).join(" or ")+". Mark the job Paid here once you see the money.":"You haven't added a Square or Stripe link yet. Add one in Settings > Payments & invoices so customers can pay online.");
+  $("dd_n").textContent=q?"They tap Accept and type their name to sign. You'll get a notice in KnockBoard when they do.":(payNames(c).length?"They can pay with "+payNames(c).join(", ")+". Mark the job Paid here once you see the money.":"You haven't added a way to get paid yet. Add one in Settings > Payments & invoices so customers can pay.");
   if(q&&R.status==="Lead"){if(R.fromForm)$("f_status").value="Quoted";else mutate("upd","customers",R.id,{status:"Quoted"})}
   $("docdlg").showModal();
 }
@@ -1376,6 +1402,42 @@ async function sigSync(){
 setInterval(()=>{if(user&&!document.hidden)sigSync()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(sigSync,1500)});
 setTimeout(()=>{paySt();sigSync()},4000);
+
+/* ---- itemized quote editor (from the customer card) ---- */
+let qiCust=null;
+function openQuoteItems(r){qiCust=r.id;const sn=splitNote(r.notes);$("qi_who").textContent="Price each part of the job for "+r.name+". The customer sees every line and the total.";qLI.init(r,sn.items);$("qidlg").showModal()}
+$("qi_x").onclick=()=>$("qidlg").close();
+$("qi_go").onclick=()=>{
+  const r=customers.find(c=>c.id===qiCust);if(!r)return;
+  const items=qLI.named().filter(x=>x[1]>0);if(!items.length){alert("Add at least one item with a price.");return}
+  const tot=items.reduce((a,x)=>a+x[1],0),sn=splitNote(r.notes);
+  const notes=(sn.time?"Time: "+sn.time+"\n":"")+(items.length>1?"Items: "+JSON.stringify(items)+"\n":"")+(sn.solar?"Solar: "+[sn.solar.bill,sn.solar.kwh,sn.solar.kw,sn.solar.ppw].map(v=>+v||"").join("|")+"\n":"")+(sn.plan?"Plan: "+sn.plan.m+"|"+(sn.plan.p||0)+"\n":"")+sn.rest;
+  mutate("upd","customers",r.id,{service:items.map(x=>x[0]).join(", "),price:tot,notes});
+  $("qidlg").close();const nr=customers.find(c=>c.id===r.id);if(nr)openDoc("q",cardRec(nr));
+};
+
+/* ---- new quote / new invoice from the + menu ---- */
+let ndKind="q";
+function openNewDoc(k){ndKind=k;fabClose();$("nd_t").textContent=k=="q"?"New quote":"New invoice";
+  $("nd_list").innerHTML=customers.map(c=>`<option value="${String(c.name||"").replace(/"/g,"&quot;")}">`).join("");
+  ["nd_name","nd_phone","nd_email","nd_addr"].forEach(i=>$(i).value="");nLI.init({service:"",price:""},null);$("ndlg").showModal()}
+$("addqt").onclick=()=>openNewDoc("q");$("addin").onclick=()=>openNewDoc("i");
+$("nd_x").onclick=()=>$("ndlg").close();
+$("nd_name").addEventListener("change",()=>{const n=$("nd_name").value.trim().toLowerCase(),c=customers.find(x=>(x.name||"").trim().toLowerCase()===n);
+  if(c){$("nd_phone").value=c.phone||"";$("nd_email").value=c.email||"";$("nd_addr").value=c.address||""}});
+$("nd_go").onclick=()=>{
+  const name=$("nd_name").value.trim();if(!name){alert("Enter the customer's name.");return}
+  const items=nLI.named().filter(x=>x[1]>0);if(!items.length){alert("Add at least one item with a price.");return}
+  const tot=items.reduce((a,x)=>a+x[1],0),phone=$("nd_phone").value.trim(),email=$("nd_email").value.trim(),address=$("nd_addr").value.trim();
+  const ex=customers.find(x=>(x.name||"").trim().toLowerCase()===name.toLowerCase());
+  const sn=splitNote(ex?ex.notes:"");
+  const notes=(sn.time?"Time: "+sn.time+"\n":"")+(items.length>1?"Items: "+JSON.stringify(items)+"\n":"")+(sn.solar?"Solar: "+[sn.solar.bill,sn.solar.kwh,sn.solar.kw,sn.solar.ppw].map(v=>+v||"").join("|")+"\n":"")+(sn.plan?"Plan: "+sn.plan.m+"|"+(sn.plan.p||0)+"\n":"")+sn.rest;
+  const f={service:items.map(x=>x[0]).join(", "),price:tot,notes};if(phone)f.phone=phone;if(email)f.email=email;if(address)f.address=address;
+  let id;
+  if(ex){id=ex.id;if(ndKind=="i"&&["Lead","Quoted"].includes(ex.status))f.status="Scheduled";mutate("upd","customers",id,f)}
+  else{id=newId();mutate("ins","customers",id,{name,phone,email,address,service:f.service,status:ndKind=="i"?"Done":"Quoted",price:tot,source:"Manual",job_date:null,follow_up:null,notes})}
+  $("ndlg").close();const nr=customers.find(c=>c.id===id);if(nr)openDoc(ndKind,cardRec(nr));
+};
 </script>
 </body>
 </html>
