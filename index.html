@@ -42,6 +42,7 @@ button,.btn{font:inherit;font-size:14px;color:var(--t);background:var(--c);borde
 .fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:13px 20px;box-shadow:0 4px 18px #000}
 dialog{border:1px solid var(--b);border-radius:16px;padding:16px;width:min(94vw,520px);background:#0a0a0a;color:var(--t)}
 dialog::backdrop{background:#000b}
+#gsbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#0d3a2a,#0a0a0a);border:1px solid #2fbf7a66;border-radius:16px;padding:10px 10px 10px 12px;margin:0 0 12px}#gsbar[hidden]{display:none}#gsbar .ib-i{font-size:26px}#gsbar .ib-t{flex:1;min-width:0}#gsbar .ib-t b{display:block;font-size:14px}#gsbar .ib-t small{color:#9aa6bd;font-size:12px}#gsbar .pri{padding:9px 14px;font-size:14px;border-radius:12px}#gsbar #gsx{background:none;border:none;color:#8c97ad;font-size:16px;padding:6px}#gsdlg video{width:100%;max-height:68vh;border-radius:14px;background:#000;display:block}
 #instbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#10224a,#0a0a0a);border:1px solid #2b7fff66;border-radius:16px;padding:10px 10px 10px 12px;margin:0 0 12px}
 #instbar[hidden]{display:none}
 #instbar .ib-i{font-size:26px}#instbar .ib-t{flex:1;min-width:0}#instbar .ib-t b{display:block;font-size:14px}#instbar .ib-t small{color:#9aa6bd;font-size:12px}
@@ -185,6 +186,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <div class="tabs"><button class="chip on" data-tab="H">Home</button><button class="chip" data-tab="C">Customers</button><button class="chip" data-tab="K">Knocking</button><button class="chip" data-tab="M">Measure</button><button class="chip" data-tab="P">Profit</button></div></div>
 
   <div id="tabH">
+    <div id="gsbar" hidden><span class="ib-i">🎬</span><div class="ib-t"><b>New here? Get started in 2 minutes</b><small>Watch how to set up payments, quotes and invoices</small></div><button id="gsshow" class="pri">Watch</button><button id="gsx" aria-label="Dismiss">✕</button></div>
     <div id="instbar" hidden><span class="ib-i">📲</span><div class="ib-t"><b>Use KnockBoard like an app</b><small>Add it to your home screen in a few taps</small></div><button id="instshow" class="pri">Show me</button><button id="instx" aria-label="Dismiss">✕</button></div>
     <div id="hwx"></div>
     <div class="card next" id="hnext"></div>
@@ -317,6 +319,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <button class="opt" id="editbiz">My business &amp; goals<br><small>Change your trade and what you use KnockBoard for</small></button>
   <button class="opt" id="installbtn">Add to home screen<br><small>Use KnockBoard like an app</small></button>
   <button class="opt" id="motivtog">Daily motivation<br><small id="motivst">Off</small></button>
+  <button class="opt" id="gsopt">Get started video<br><small>2-minute setup tour</small></button>
   <button class="opt" id="paybtn">Payments &amp; invoices<br><small id="paysm">Add your Square or Stripe link</small></button>
   <button class="opt" id="manage">Manage plan<br><small>Billing, payment method, cancel</small></button>
   <button class="opt" id="out" style="color:#ff6b6b">Log out</button>
@@ -348,6 +351,13 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <div class="litot"><button type="button" class="mini" id="nd_add">+ Add item</button><span>Total <b id="nd_tot">$0</b></span></div>
   <input id="nd_svc" type="hidden"><input id="nd_price" type="hidden">
   <div class="row" style="margin-top:12px;justify-content:flex-end"><button id="nd_x">Cancel</button> <button class="btn pri" id="nd_go">Continue</button></div>
+</dialog>
+
+<dialog id="gsdlg">
+  <h2 style="margin:0 0 4px;font-size:19px">Get started</h2>
+  <div class="sub" style="margin-bottom:10px">A 2-minute tour: business name, payments, your first customer, quotes and invoices.</div>
+  <video id="gsv" controls playsinline preload="none" poster="poster.jpg"></video>
+  <div class="row" style="margin-top:10px;justify-content:flex-end"><button id="gs_x">Close</button></div>
 </dialog>
 
 <dialog id="qidlg">
@@ -1438,6 +1448,14 @@ $("nd_go").onclick=()=>{
   else{id=newId();mutate("ins","customers",id,{name,phone,email,address,service:f.service,status:ndKind=="i"?"Done":"Quoted",price:tot,source:"Manual",job_date:null,follow_up:null,notes})}
   $("ndlg").close();const nr=customers.find(c=>c.id===id);if(nr)openDoc(ndKind,cardRec(nr));
 };
+
+/* ---- Get started video ---- */
+function gsOpen(){const v=$("gsv");if(!v.getAttribute("src"))v.src="getstarted.mp4";$("gsdlg").showModal();try{v.play()}catch(e){}}
+function gsBar(){let x=false;try{x=localStorage.getItem("kb_gsx")==="1"}catch(e){}$("gsbar").hidden=x}
+$("gsshow").onclick=gsOpen;$("gsopt").onclick=()=>{const d=$("paybtn").closest("dialog");if(d)d.close();gsOpen()};
+$("gsx").onclick=()=>{try{localStorage.setItem("kb_gsx","1")}catch(e){}gsBar()};
+$("gs_x").onclick=()=>{$("gsv").pause();$("gsdlg").close()};$("gsdlg").addEventListener("close",()=>$("gsv").pause());
+gsBar();
 </script>
 </body>
 </html>

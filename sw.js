@@ -1,4 +1,4 @@
-const V="kb-shell-v5",T="kb-tiles-v1",MAX_TILES=400;
+const V="kb-shell-v6",T="kb-tiles-v1",MAX_TILES=400;
 const SHELL=["./","index.html","manifest.webmanifest","icon-192.png","icon-512.png",
 "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css","https://unpkg.com/leaflet@1.9.4/dist/leaflet.js","https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"];
 self.addEventListener("install",e=>{e.waitUntil((async()=>{const c=await caches.open(V);await Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})));self.skipWaiting()})())});
@@ -9,6 +9,7 @@ async function trim(c){const ks=await c.keys();for(let i=0;i<ks.length-MAX_TILES
 self.addEventListener("fetch",e=>{
   const r=e.request;if(r.method!=="GET")return;
   const u=new URL(r.url);
+  if(u.pathname.endsWith(".mp4")||r.headers.has("range"))return; // let video stream normally
   if(u.hostname.endsWith("supabase.co")||u.hostname.endsWith("stripe.com"))return; // never touch data or billing
   if(isTile(u.hostname)){
     e.respondWith((async()=>{const c=await caches.open(T),hit=await c.match(r);if(hit)return hit;
