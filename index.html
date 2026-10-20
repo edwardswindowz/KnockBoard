@@ -43,6 +43,7 @@ button,.btn{font:inherit;font-size:14px;color:var(--t);background:var(--c);borde
 dialog{border:1px solid var(--b);border-radius:16px;padding:16px;width:min(94vw,520px);background:#0a0a0a;color:var(--t)}
 dialog::backdrop{background:#000b}
 #gsbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#0d3a2a,#0a0a0a);border:1px solid #2fbf7a66;border-radius:16px;padding:10px 10px 10px 12px;margin:0 0 12px}#gsbar[hidden]{display:none}#gsbar .ib-i{font-size:26px}#gsbar .ib-t{flex:1;min-width:0}#gsbar .ib-t b{display:block;font-size:14px}#gsbar .ib-t small{color:#9aa6bd;font-size:12px}#gsbar .pri{padding:9px 14px;font-size:14px;border-radius:12px}#gsbar #gsx{background:none;border:none;color:#8c97ad;font-size:16px;padding:6px}#gsdlg video{width:100%;max-height:68vh;border-radius:14px;background:#000;display:block}
+.hlp{margin:6px 0 2px;font-size:13px}.hlp summary{color:#6aa5ff;cursor:pointer;font-weight:700;list-style:none}.hlp summary::-webkit-details-marker{display:none}.hlp ol{margin:8px 0 4px;padding-left:20px;color:#b9c3d6;line-height:1.5}.hlp li{margin:3px 0}.hlp .tip{color:#9aa6bd;font-size:12px;margin-top:4px}
 #instbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#10224a,#0a0a0a);border:1px solid #2b7fff66;border-radius:16px;padding:10px 10px 10px 12px;margin:0 0 12px}
 #instbar[hidden]{display:none}
 #instbar .ib-i{font-size:26px}#instbar .ib-t{flex:1;min-width:0}#instbar .ib-t b{display:block;font-size:14px}#instbar .ib-t small{color:#9aa6bd;font-size:12px}
@@ -330,7 +331,9 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <h2 style="margin:0 0 4px;font-size:19px">Payments &amp; invoices</h2>
   <div class="sub" style="margin-bottom:10px">Add any way you want to get paid. Customers see only the ones you fill in. Square and Stripe need a payment link from your account (use one where the buyer sets the price). Cash App, Venmo and Zelle just need your name or number.</div>
   <label>Square payment link</label><input id="pl_sq" placeholder="https://square.link/u/..." autocomplete="off" autocapitalize="off" inputmode="url">
+  <details class="hlp"><summary>Where do I find my Square payment link?</summary><ol><li>Open the <b>Square Point of Sale</b> app on your phone.</li><li>Tap <b>More</b>, then <b>Payment links</b> (or <b>Create link</b>).</li><li>Choose <b>Collect a payment</b>.</li><li>Turn on <b>Allow buyer to set the price</b>. That lets each customer pay their own invoice amount.</li><li>Tap <b>Create link</b>, then <b>Copy link</b>.</li><li>Come back here and paste it in the box above.</li></ol><div class="tip">Menu names can look a little different depending on your Square version. You only need to do this once.</div></details>
   <label>Stripe payment link</label><input id="pl_st" placeholder="https://buy.stripe.com/..." autocomplete="off" autocapitalize="off" inputmode="url">
+  <details class="hlp"><summary>Where do I find my Stripe payment link?</summary><ol><li>Log in at <b>dashboard.stripe.com</b> on your phone or computer.</li><li>Go to <b>Payment links</b> and tap <b>New</b>.</li><li>Add a product and choose <b>Customers choose what to pay</b>, so each customer can enter their invoice amount.</li><li>Tap <b>Create link</b>, then <b>Copy link</b>.</li><li>Come back here and paste it in the box above.</li></ol><div class="tip">Only fill this in if you use Stripe. You only need to do this once.</div></details>
   <label>Cash App <span style="text-transform:none;letter-spacing:0">($cashtag)</span></label><input id="pl_cs" placeholder="$yourname" autocomplete="off" autocapitalize="off">
   <label>Venmo <span style="text-transform:none;letter-spacing:0">(@username)</span></label><input id="pl_vm" placeholder="@yourname" autocomplete="off" autocapitalize="off">
   <label>Zelle <span style="text-transform:none;letter-spacing:0">(phone or email)</span></label><input id="pl_zl" placeholder="336-555-0100 or you@email.com" autocomplete="off" autocapitalize="off">
@@ -467,6 +470,7 @@ $("signup").onclick=async()=>{smsg("");
   const b=$("signup");b.disabled=true;b.textContent="Creating…";
   try{const {data,error}=await sb.auth.signUp({email:em,password:pw,options:{data:{full_name:name,signup_niche:biz}}});
     if(error)smsg(/already registered/i.test(error.message)?"That email already has an account. Tap Log in below.":error.message);
+    else if(data&&data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0)smsg("That email already has an account. Tap Log in below.")
     else if(!data.session)smsg("Check your email to confirm your account, then log in.",true)}
   catch(e){smsg("Couldn't reach the server. Check your connection and try again.")}
   b.disabled=false;b.textContent="Create account"};
