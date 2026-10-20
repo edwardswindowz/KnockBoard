@@ -580,7 +580,8 @@ function render(){
       ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}${splitNote(r.notes).time?" · "+fmtT(splitNote(r.notes).time):""}</div>`:""}
       ${r.follow_up?`<div class="sub ${late?"due":""}">${["Paid","Done"].includes(r.status)?"Rebook reminder":"Follow up"}: ${esc(r.follow_up)}</div>`:""}
       ${splitNote(r.notes).rest?`<div class="sub">${esc(splitNote(r.notes).rest)}</div>`:""}</div></div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
-      <div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>${+r.price>0&&["Lead","Quoted"].includes(r.status)?`<button data-quote="${r.id}">Text quote</button>`:""}`:""}
+      <div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>`:""}
+      ${+r.price>0&&["Lead","Quoted"].includes(r.status)?`<button data-dq="${r.id}">Send quote</button>`:""}${+r.price>0&&["Scheduled","Done","Paid"].includes(r.status)?`<button data-di="${r.id}">Send invoice</button>`:""}
       ${r.address?`<a class="btn g" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}
       <button class="g" data-share="${r.id}">Share</button>${r.status==="Paid"&&ph?`<button data-rv="${r.id}">Ask for review</button>`:""}${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button class="g" data-edit="${r.id}">Edit</button></div></div>`}).join("")
     :`<div class="empty">No customers yet. Tap “+ New customer” or log a sale on the map.</div>`;
@@ -653,6 +654,8 @@ $("list").onclick=e=>{
   if(ed)openForm(customers.find(r=>r.id===ed));
   if(adv){const r=customers.find(r=>r.id===adv);if(r){const ns=ST[ST.indexOf(r.status)+1],u={status:ns};if(["Done","Paid"].includes(ns)&&r.job_date&&!r.follow_up)u.follow_up=rebookDate(r.job_date,r.service,(splitNote(r.notes).plan||{}).m||0);mutate("upd","customers",adv,u)}}
   if(e.target.dataset.quote){const r=customers.find(r=>r.id===e.target.dataset.quote),ph=r&&(r.phone||"").replace(/[^\d+]/g,"");if(ph)location.href=smsHref([ph],qTxt(r))}
+  if(e.target.dataset.dq){const r=customers.find(r=>r.id===e.target.dataset.dq);if(r)openDoc("q",cardRec(r))}
+  if(e.target.dataset.di){const r=customers.find(r=>r.id===e.target.dataset.di);if(r)openDoc("i",cardRec(r))}
   if(e.target.dataset.rv)askReview(e.target.dataset.rv);
   if(e.target.dataset.share)shareJob(e.target.dataset.share);
 };
@@ -1310,29 +1313,33 @@ $("pl_s").onclick=()=>{const c={sq:fixUrl($("pl_sq").value),st:fixUrl($("pl_st")
   lsSet(K("paycfg"),c);try{Promise.resolve(sb.auth.updateUser({data:{paycfg:c}})).catch(()=>{})}catch(e){}paySt();$("paydlg").close()};
 const b64u=o=>{const b=new TextEncoder().encode(JSON.stringify(o));let s="";b.forEach(x=>s+=String.fromCharCode(x));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
 let curDoc=null;
-function buildDoc(kind){
-  const id=editId;if(!id)return null;
-  const name=$("f_name").value.trim()||"Customer",c=payCfg();
+function formRec(){const sn=splitNote((customers.find(r=>r.id===editId)||{}).notes);
   let it=fLI.named();if(!it.length&&+$("f_price").value)it=[[$("f_svc").value.trim()||"Service",+$("f_price").value]];
-  const tot=it.reduce((a,x)=>a+(+x[1]||0),0);
+  return{id:editId,name:$("f_name").value.trim(),phone:$("f_phone").value.trim(),email:$("f_email").value.trim(),address:$("f_addr").value.trim(),it,status:$("f_status").value,
+    jd:$("f_jobna").checked?"":$("f_job").value,tm:$("f_timena").checked?"":$("f_time").value,plan:sn.plan,job_date:$("f_job").value,service:$("f_svc").value,follow_up:$("f_fu").value,fromForm:true}}
+function cardRec(r){const sn=splitNote(r.notes);let it=sn.items&&sn.items.length?sn.items:(+r.price?[[r.service||"Service",+r.price]]:[]);
+  return{id:r.id,name:r.name,phone:r.phone||"",email:r.email||"",address:r.address||"",it,status:r.status,jd:r.job_date||"",tm:sn.time||"",plan:sn.plan,job_date:r.job_date,service:r.service,follow_up:r.follow_up,fromForm:false}}
+function buildDoc(kind,R){
+  const id=R.id;if(!id)return null;
+  const name=R.name||"Customer",c=payCfg(),it=R.it,tot=it.reduce((a,x)=>a+(+x[1]||0),0);
   if(!tot){alert("Add at least one service with a price first.");return null}
   const d=new Date(),mmdd=String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0"),no=(kind==="q"?"Q-":"INV-")+String(id).replace(/-/g,"").slice(0,4).toUpperCase()+mmdd;
-  const p={k:kind,b:bizN()||"Your service provider",bp:c.ph||"",be:c.em||"",c:name,a:$("f_addr").value.trim(),it,t:tot,d:today(),n:no,u:user.id,cid:id,sq:c.sq||"",st:c.st||"",pn:c.nt||"",jd:$("f_jobna").checked?"":$("f_job").value,tm:$("f_timena").checked?"":$("f_time").value};
-  const pl=+$("f_plan").value;if(pl&&kind==="q"){const sn=splitNote(customers.find(r=>r.id===id)&&customers.find(r=>r.id===id).notes);if(sn.plan&&sn.plan.p>0){p.pl=PLANL[sn.plan.m];p.pp=sn.plan.p}}
-  return{p,url:DOCBASE+"#"+b64u(p),name,phone:$("f_phone").value.trim(),email:$("f_email").value.trim(),kind,tot,no};
+  const p={k:kind,b:bizN()||"Your service provider",bp:c.ph||"",be:c.em||"",c:name,a:R.address,it,t:tot,d:today(),n:no,u:user.id,cid:id,sq:c.sq||"",st:c.st||"",pn:c.nt||"",jd:R.jd,tm:R.tm};
+  if(kind==="q"&&R.plan&&R.plan.p>0){p.pl=PLANL[R.plan.m];p.pp=R.plan.p}
+  return{p,url:DOCBASE+"#"+b64u(p),name,phone:R.phone,email:R.email,kind,tot,no,rec:R};
 }
-function openDoc(kind){
-  const D=buildDoc(kind);if(!D)return;curDoc=D;
+function openDoc(kind,R){
+  R=R||formRec();const D=buildDoc(kind,R);if(!D)return;curDoc=D;
   const c=payCfg(),q=kind==="q",fn=firstName(D.name),biz=bizN();
   D.msg=q?`Hi ${fn}${biz?", it's "+biz:""}! Here's your quote for ${money(D.tot)}. You can look it over and accept it right on your phone: ${D.url}`
           :`Hi ${fn}${biz?", it's "+biz:""}! Here's your invoice for ${money(D.tot)}. You can pay online here: ${D.url}`;
   $("dd_t").textContent=q?"Send quote to sign":"Send invoice";
   $("dd_s").textContent=(q?"Quote ":"Invoice ")+D.no+" · "+D.name+" · "+money(D.tot);
-  const ph=D.phone.replace(/[^\d+]/g,"");
+  const ph=(D.phone||"").replace(/[^\d+]/g,"");
   $("dd_sms").hidden=!ph;$("dd_sms2").textContent=D.phone;$("dd_em").hidden=!D.email;$("dd_em2").textContent=D.email;
-  $("dd_paid").hidden=q;
+  $("dd_paid").hidden=q||R.status==="Paid";
   $("dd_n").textContent=q?"They tap Accept and type their name to sign. You'll get a notice in KnockBoard when they do.":(c.sq||c.st?"They pay with "+[c.sq&&"Square",c.st&&"Stripe"].filter(Boolean).join(" or ")+". Mark the job Paid here once you see the money.":"You haven't added a Square or Stripe link yet. Add one in Settings > Payments & invoices so customers can pay online.");
-  if(q&&["Lead"].includes($("f_status").value)){$("f_status").value="Quoted"}
+  if(q&&R.status==="Lead"){if(R.fromForm)$("f_status").value="Quoted";else mutate("upd","customers",R.id,{status:"Quoted"})}
   $("docdlg").showModal();
 }
 $("f_dq").onclick=()=>openDoc("q");$("f_di").onclick=()=>openDoc("i");
@@ -1342,7 +1349,10 @@ $("dd_em").onclick=()=>{if(curDoc){location.href="mailto:"+encodeURIComponent(cu
 $("dd_sh").onclick=async()=>{if(!curDoc)return;try{if(navigator.share){await navigator.share({text:curDoc.msg});return}await navigator.clipboard.writeText(curDoc.msg);kbToast("Message copied")}catch(e){if(!(e&&e.name==="AbortError"))prompt("Copy this:",curDoc.msg)}};
 $("dd_cp").onclick=async()=>{if(!curDoc)return;try{await navigator.clipboard.writeText(curDoc.url);kbToast("Link copied")}catch(e){prompt("Copy this link:",curDoc.url)}};
 $("dd_pv").onclick=()=>{if(curDoc)window.open(curDoc.url,"_blank")};
-$("dd_paid").onclick=()=>{if(editId){$("f_status").value="Paid";kbToast("Status set to Paid. Tap Save to keep it.");$("docdlg").close()}};
+$("dd_paid").onclick=()=>{const R=curDoc&&curDoc.rec;if(!R)return;
+  if(R.fromForm){$("f_status").value="Paid";kbToast("Status set to Paid. Tap Save to keep it.")}
+  else{const u={status:"Paid"};if(R.job_date&&!R.follow_up)u.follow_up=rebookDate(R.job_date,R.service,(R.plan||{}).m||0);mutate("upd","customers",R.id,u);kbToast("Marked as Paid")}
+  $("docdlg").close()};
 async function sigSync(){
   if(!user||!navigator.onLine)return;
   try{
