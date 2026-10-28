@@ -656,12 +656,12 @@ function render(){
   updSel();
   $("list").innerHTML=list.length?list.map(r=>{
     const ph=(r.phone||"").replace(/[^\d+]/g,""),late=r.follow_up&&r.follow_up<=today(),next=ST[ST.indexOf(r.status)+1];
-    return `<div class="card"><div class="top"><div style="display:flex;gap:10px;min-width:0">${ph?`<input type="checkbox" data-sel="${r.id}" ${sel.has(r.id)?"checked":""}>`:""}<div><div class="nm">${esc(r.name)}</div>
+    return `<div class="card"><div class="top"><div style="display:flex;gap:10px;min-width:0">${ph?`<input type="checkbox" data-sel="${r.id}" ${sel.has(r.id)?"checked":""}>`:""}<div><div class="nm">${esc(r.name)}</div>${signedBadge(r)}
       <div class="sub">${esc(r.service)}${r.price?" · "+money(r.price):""}</div>${itemsLine(r)?`<div class="sub">${esc(itemsLine(r))}</div>`:""}${splitNote(r.notes).solar?`<div class="sub">Solar: ${solLine(splitNote(r.notes).solar)}</div>`:""}${splitNote(r.notes).plan?`<div class="sub">Plan: ${money(splitNote(r.notes).plan.p)} ${PLANL[splitNote(r.notes).plan.m]||""}</div>`:""}
       ${r.address?`<div class="sub">${esc(r.address)}</div>`:""}
       ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}${splitNote(r.notes).time?" · "+fmtT(splitNote(r.notes).time):""}</div>`:""}
       ${r.follow_up?`<div class="sub ${late?"due":""}">${["Paid","Done"].includes(r.status)?"Rebook reminder":"Follow up"}: ${esc(r.follow_up)}</div>`:""}
-      ${splitNote(r.notes).rest?`<div class="sub">${esc(splitNote(r.notes).rest)}</div>`:""}</div></div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
+      ${splitNote(r.notes).rest.replace(/^\s*✅ Quote .*$/gm,"").trim()?`<div class="sub">${esc(splitNote(r.notes).rest.replace(/^\s*✅ Quote .*$/gm,"").trim())}</div>`:""}</div></div><span class="badge s-${esc(r.status)}">${esc(r.status)}</span></div>
       <div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>`:""}
       ${["Lead","Quoted"].includes(r.status)?`<button data-dq="${r.id}">Send quote</button>`:""}${+r.price>0&&["Scheduled","Done","Paid"].includes(r.status)?`<button data-di="${r.id}">Send invoice</button>`:""}
       ${r.address?`<a class="btn g" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}
@@ -1476,14 +1476,21 @@ $("dd_paid").onclick=()=>{const R=curDoc&&curDoc.rec;if(!R)return;
   if(R.fromForm){$("f_status").value="Paid";kbToast("Status set to Paid. Tap Save to keep it.")}
   else{const u={status:"Paid"};if(R.job_date&&!R.follow_up)u.follow_up=rebookDate(R.job_date,R.service,(R.plan||{}).m||0);mutate("upd","customers",R.id,u);kbToast("Marked as Paid")}
   $("docdlg").close()};
+let signedMap=null;
+const sigNrm=n=>String(n||"").toLowerCase().replace(/[^a-z ]/g," ").replace(/\s+/g," ").trim();
+function sigMatch(x){let r=customers.find(c=>c.id===x.cid);if(r)return r;const n=sigNrm(x.name).split(" ");
+  const m=customers.filter(c=>{const k=sigNrm(c.name).split(" ");return sigNrm(c.name)===sigNrm(x.name)||(k.length>1&&n.length>1&&k[0]===n[0]&&k[k.length-1]===n[n.length-1])});return m.length===1?m[0]:null}
+function signedOf(r){if(!signedMap)signedMap=lsGet(K("signed"),{});return signedMap[r.id]}
+function signedBadge(r){const g=signedOf(r);if(!g)return "";const d=g.a?new Date(g.a).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"";return `<div class="sub" style="color:#37c35a;font-weight:800">✅ Quote signed${d?" · "+d:""}</div>`}
 async function sigSync(){
   if(!user||!navigator.onLine)return;
   try{
-    const {data,error}=await sb.from("quote_signs").select("id,cid,name,signed_at,total,doc_no").eq("owner",user.id).order("signed_at",{ascending:false}).limit(60);
+    const {data,error}=await sb.from("quote_signs").select("id,cid,name,signed_at,total,doc_no").eq("owner",user.id).order("signed_at",{ascending:false}).limit(200);
     if(error||!data)return;
+    {const m={};data.slice().reverse().forEach(x=>{const r=sigMatch(x);if(r)m[r.id]={n:x.name,a:x.signed_at}});signedMap=m;lsSet(K("signed"),m);render()}
     const seen=lsGet(K("sigseen"),[]),fresh=data.filter(x=>!seen.includes(x.id));if(!fresh.length)return;
     const done=[];
-    fresh.forEach(x=>{const r=customers.find(c=>c.id===x.cid);if(!r){done.push(x.id);return}
+    fresh.forEach(x=>{const r=sigMatch(x);if(!r){done.push(x.id);return}
       const dt=new Date(x.signed_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),line="\n✅ Quote "+(x.doc_no||"")+" signed by "+x.name+" on "+dt;
       const u={notes:(r.notes||"")+line};if(["Lead","Quoted"].includes(r.status))u.status="Scheduled";
       mutate("upd","customers",r.id,u);done.push(x.id);kbToast("✅ "+x.name+" signed their quote ("+money(x.total)+")")});
