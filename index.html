@@ -44,6 +44,7 @@ dialog{border:1px solid var(--b);border-radius:16px;padding:16px;width:min(94vw,
 dialog::backdrop{background:#000b}
 #gsbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#0d3a2a,#0a0a0a);border:1px solid #2fbf7a66;border-radius:16px;padding:10px 10px 10px 12px;margin:0 0 12px}#gsbar[hidden]{display:none}#gsbar .ib-i{font-size:26px}#gsbar .ib-t{flex:1;min-width:0}#gsbar .ib-t b{display:block;font-size:14px}#gsbar .ib-t small{color:#9aa6bd;font-size:12px}#gsbar .pri{padding:9px 14px;font-size:14px;border-radius:12px}#gsbar #gsx{background:none;border:none;color:#8c97ad;font-size:16px;padding:6px}#gsdlg video{width:100%;max-height:68vh;border-radius:14px;background:#000;display:block}
 .hlp{margin:6px 0 2px;font-size:13px}.hlp summary{color:#6aa5ff;cursor:pointer;font-weight:700;list-style:none}.hlp summary::-webkit-details-marker{display:none}.hlp ol{margin:8px 0 4px;padding-left:20px;color:#b9c3d6;line-height:1.5}.hlp li{margin:3px 0}.hlp .tip{color:#9aa6bd;font-size:12px;margin-top:4px}
+.kbname{background:#0b1220e6;color:#fff;border:1.5px solid #2f9e44;font-weight:800;font-size:12px;padding:2px 7px;border-radius:9px;box-shadow:0 2px 8px #0008;white-space:nowrap}.kbname:before{display:none}.nolab .kbname{display:none}
 #instbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#10224a,#0a0a0a);border:1px solid #2b7fff66;border-radius:16px;padding:10px 10px 10px 12px;margin:0 0 12px}
 #instbar[hidden]{display:none}
 #instbar .ib-i{font-size:26px}#instbar .ib-t{flex:1;min-width:0}#instbar .ib-t b{display:block;font-size:14px}#instbar .ib-t small{color:#9aa6bd;font-size:12px}
@@ -768,10 +769,11 @@ function tiles(satellite){
     :L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",{maxZoom:19,attribution:"CARTO"});
 }
 function initMap(){
-  if(mapReady){map.invalidateSize();return}mapReady=true;
+  if(mapReady){map.invalidateSize();drawPins();return}mapReady=true;
   map=L.map("map",{zoomControl:false}).setView([39.5,-98.35],4);
   base=tiles(true).addTo(map);
   layer=L.layerGroup().addTo(map);
+  const zl=()=>map.getContainer().classList.toggle("nolab",map.getZoom()<14);map.on("zoomend",zl);zl();
   map.on("click",e=>openPin({lat:e.latlng.lat,lng:e.latlng.lng}));
   if(navigator.geolocation)navigator.geolocation.watchPosition(p=>{
     const ll=[p.coords.latitude,p.coords.longitude];
@@ -779,10 +781,36 @@ function initMap(){
     ()=>$("kmsg").textContent="Allow location for this site to see your white dot.",{enableHighAccuracy:true,maximumAge:2000});
   drawPins();
 }
+/* sold customers get a green dot + name label on the map automatically */
+let geoC=null,geoBusy=false;
+const geoLoad=()=>{if(!geoC){try{geoC=JSON.parse(localStorage.getItem(K("geo"))||"{}")}catch(e){geoC={}}}return geoC};
+const geoSave=()=>{try{localStorage.setItem(K("geo"),JSON.stringify(geoC))}catch(e){}};
+const addrKey=a=>String(a||"").trim().toLowerCase().replace(/\s+/g," ");
+const soldCust=()=>customers.filter(c=>["Scheduled","Done","Paid"].includes(c.status)&&addrKey(c.address));
+const nameKey=n=>String(n||"").trim().toLowerCase();
+async function geoRun(){
+  if(geoBusy||!mapReady||!navigator.onLine)return;const g=geoLoad(),now=Date.now();
+  const todo=soldCust().filter(c=>{const v=g[addrKey(c.address)];return !v||(v.f&&now-v.f>864e5)});
+  if(!todo.length)return;geoBusy=true;let did=false;
+  try{for(const c of todo.slice(0,40)){const k=addrKey(c.address);if(g[k]&&!g[k].f)continue;
+    let prox="";const ll=meMark?meMark.getLatLng():(pins.length?{lat:pins[pins.length-1].lat,lng:pins[pins.length-1].lng}:null);if(ll)prox="&proximity="+ll.lng+","+ll.lat;
+    try{const r=await fetch("https://api.mapbox.com/geocoding/v5/mapbox.places/"+encodeURIComponent(c.address.trim())+".json?limit=1&country=us&types=address,poi"+prox+"&access_token="+MAPBOX_TOKEN);
+      const f=r.ok?((await r.json()).features||[])[0]:null;g[k]=f?{lat:f.center[1],lng:f.center[0]}:{f:now};did=true}catch(e){break}
+    await new Promise(z=>setTimeout(z,200))}}
+  finally{geoBusy=false}
+  if(did){geoSave();drawPins()}
+}
 function drawPins(){
   if(!mapReady)return;layer.clearLayers();
-  pins.forEach(p=>L.circleMarker([p.lat,p.lng],{radius:10,color:"#fff",weight:2,fillColor:COL[p.result],fillOpacity:1})
-    .on("click",e=>{L.DomEvent.stopPropagation(e);openPin(p)}).addTo(layer));
+  const lab=n=>({permanent:true,direction:"top",offset:[0,-9],className:"kbname"});
+  pins.forEach(p=>{const m=L.circleMarker([p.lat,p.lng],{radius:10,color:"#fff",weight:2,fillColor:COL[p.result],fillOpacity:1})
+    .on("click",e=>{L.DomEvent.stopPropagation(e);openPin(p)}).addTo(layer);
+    if(p.result==="Sold"&&p.name)m.bindTooltip(esc(p.name),lab())});
+  {const g=geoLoad(),have=new Set(pins.filter(p=>p.result==="Sold"&&p.name).map(p=>nameKey(p.name)));
+   soldCust().forEach(c=>{const v=g[addrKey(c.address)];if(!v||v.f||have.has(nameKey(c.name)))return;
+     L.circleMarker([v.lat,v.lng],{radius:10,color:"#fff",weight:2,fillColor:COL.Sold,fillOpacity:1})
+      .on("click",e=>{L.DomEvent.stopPropagation(e);openForm(c)}).bindTooltip(esc(c.name),lab()).addTo(layer)})}
+  setTimeout(geoRun,0);
   const c=r=>pins.filter(p=>p.result===r).length;
   $("kstats").innerHTML=["Sold","Quoted","Not home","No"].map(r=>`<div class="st"><b style="color:${COL[r]}">${c(r)}</b><span>${r==="Quoted"?"Quoted/<wbr>Waiting":r}</span></div>`).join("")+`<div class="st"><b>${pins.length}</b><span>Doors</span></div>`;
 }
