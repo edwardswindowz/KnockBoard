@@ -44,7 +44,7 @@ dialog{border:1px solid var(--b);border-radius:16px;padding:16px;width:min(94vw,
 dialog::backdrop{background:#000b}
 #gsbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#0d3a2a,#0a0a0a);border:1px solid #2fbf7a66;border-radius:16px;padding:10px 10px 10px 12px;margin:0 0 12px}#gsbar[hidden]{display:none}#gsbar .ib-i{font-size:26px}#gsbar .ib-t{flex:1;min-width:0}#gsbar .ib-t b{display:block;font-size:14px}#gsbar .ib-t small{color:#9aa6bd;font-size:12px}#gsbar .pri{padding:9px 14px;font-size:14px;border-radius:12px}#gsbar #gsx{background:none;border:none;color:#8c97ad;font-size:16px;padding:6px}#gsdlg video{width:100%;max-height:68vh;border-radius:14px;background:#000;display:block}
 .hlp{margin:6px 0 2px;font-size:13px}.hlp summary{color:#6aa5ff;cursor:pointer;font-weight:700;list-style:none}.hlp summary::-webkit-details-marker{display:none}.hlp ol{margin:8px 0 4px;padding-left:20px;color:#b9c3d6;line-height:1.5}.hlp li{margin:3px 0}.hlp .tip{color:#9aa6bd;font-size:12px;margin-top:4px}
-.kbname{background:#0b1220e6;color:#fff;border:1.5px solid #2f9e44;font-weight:800;font-size:12px;padding:2px 7px;border-radius:9px;box-shadow:0 2px 8px #0008;white-space:nowrap}.kbname:before{display:none}.nolab .kbname{display:none}
+.kbname{background:#0b1220e6;color:#fff;border:1.5px solid #2f9e44;font-weight:800;font-size:12px;padding:2px 7px;border-radius:9px;box-shadow:0 2px 8px #0008;white-space:nowrap}.kbname:before{display:none}.nolab .kbname{display:none}#mvbar[hidden]{display:none!important}
 #instbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#10224a,#0a0a0a);border:1px solid #2b7fff66;border-radius:16px;padding:10px 10px 10px 12px;margin:0 0 12px}
 #instbar[hidden]{display:none}
 #instbar .ib-i{font-size:26px}#instbar .ib-t{flex:1;min-width:0}#instbar .ib-t b{display:block;font-size:14px}#instbar .ib-t small{color:#9aa6bd;font-size:12px}
@@ -321,6 +321,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <button class="opt" id="editbiz">My business &amp; goals<br><small>Change your trade and what you use KnockBoard for</small></button>
   <button class="opt" id="installbtn">Add to home screen<br><small>Use KnockBoard like an app</small></button>
   <button class="opt" id="motivtog">Daily motivation<br><small id="motivst">Off</small></button>
+  <button class="opt" id="impbtn">Import customers<br><small>Bring your list over from another CRM</small></button>
   <button class="opt" id="gsopt">Get started video<br><small>2-minute setup tour</small></button>
   <button class="opt" id="paybtn">Payments &amp; invoices<br><small id="paysm">Add your Square or Stripe link</small></button>
   <button class="opt" id="manage">Manage plan<br><small>Billing, payment method, cancel</small></button>
@@ -422,6 +423,41 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <div class="row"><button id="oskip">Skip</button><button id="oclose">Stop</button></div>
 </dialog>
 
+<dialog id="impdlg">
+  <h2 style="margin:0 0 4px;font-size:19px">Import customers</h2>
+  <div id="imp1">
+    <div class="sub" style="margin-bottom:10px">Switching from another CRM? Export your customers from it as a <b>CSV file</b> (look for Export, then CSV). If you only get an Excel file, open it and choose Save As, CSV. Then pick the file here.</div>
+    <input type="file" id="imp_f" accept=".csv,.tsv,.txt,text/csv,text/plain">
+    <div class="sub" id="imp_err" style="color:#ff6b6b;margin-top:8px"></div>
+  </div>
+  <div id="imp2" hidden>
+    <div class="sub" id="imp_sum" style="margin-bottom:8px"></div>
+    <div class="sub" style="margin-bottom:4px">We matched your columns. Fix any that are wrong:</div>
+    <div id="imp_map"></div>
+    <label style="margin-top:8px">Mark everyone as</label>
+    <select id="imp_st"><option value="Lead">Lead</option><option value="Done">Past customer (Done)</option></select>
+    <div class="sub" id="imp_pv" style="margin-top:8px"></div>
+  </div>
+  <div class="row" style="margin-top:12px;justify-content:flex-end"><button id="imp_x">Cancel</button> <button class="btn pri" id="imp_go" hidden>Import</button></div>
+</dialog>
+
+<dialog id="gdlg">
+  <h2 style="margin:0 0 4px;font-size:19px" id="gd_t">Green dot</h2>
+  <div class="sub" id="gd_s" style="margin-bottom:10px"></div>
+  <button class="opt" id="gd_link">Add to existing customer<br><small>Pick the customer this house belongs to</small></button>
+  <button class="opt" id="gd_open">Open customer</button>
+  <button class="opt" id="gd_edit">Edit this house</button>
+  <button class="opt" id="gd_move">Move dot to the right house<br><small>Then tap the correct house on the map</small></button>
+  <div class="row" style="margin-top:8px;justify-content:flex-end"><button id="gd_x">Close</button></div>
+</dialog>
+<dialog id="cpdlg">
+  <h2 style="margin:0 0 8px;font-size:19px">Which customer?</h2>
+  <input id="cp_q" placeholder="Search name, phone, address" autocomplete="off">
+  <div id="cp_l" style="margin-top:8px;max-height:48vh;overflow:auto"></div>
+  <div class="row" style="margin-top:8px;justify-content:flex-end"><button id="cp_x">Cancel</button></div>
+</dialog>
+<div id="mvbar" hidden style="position:fixed;left:12px;right:12px;top:12px;z-index:9999;background:#2b7fff;color:#fff;border-radius:14px;padding:12px 14px;font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:10px"><span>Tap the correct house on the map</span><button id="mv_x" style="background:#0b1220;color:#fff;border:none;border-radius:10px;padding:8px 12px;font-weight:700">Cancel</button></div>
+
 <dialog id="pdlg">
   <h2 id="pt" style="margin:0 0 4px;font-size:18px">New house</h2>
   <div class="kbs"><button class="kb" data-r="Sold" style="background:linear-gradient(145deg,#37c35a,#1f8a3c)"><span class="ke">💵</span>Sold<small>Closed the deal</small></button><button class="kb" data-r="Quoted" style="background:linear-gradient(145deg,#3d93ee,#1a62c2)"><span class="ke">📝</span>Quoted<small>Waiting to hear back</small></button><button class="kb" data-r="Not home" style="background:linear-gradient(145deg,#ffa938,#e07a00)"><span class="ke">🚪</span>Not home<small>Come back later</small></button><button class="kb" data-r="No" style="background:linear-gradient(145deg,#f0545a,#c42429)"><span class="ke">❌</span>No<small>Not interested</small></button></div>
@@ -521,7 +557,7 @@ const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d
 const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const lsDel=k=>{try{localStorage.removeItem(k)}catch(e){}};
 const newId=()=>(window.crypto&&crypto.randomUUID)?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c=="x"?r:r&3|8).toString(16)});
-let queue=[],qUser=null,syncing=false,inflight=null,dropped=0,ver=0;
+let bulkMode=false,queue=[],qUser=null,syncing=false,inflight=null,dropped=0,ver=0;
 const K=n=>"kb_"+n+"_"+(user?user.id:"x");
 const saveQ=()=>lsSet(K("q"),queue),saveC=()=>lsSet(K("c"),{customers,pins});
 const isNet=r=>!!r&&!!r.error&&(!navigator.onLine||r.status===0||r.status>=500||r.status===401||/fetch|network|load failed|timeout|aborted/i.test(r.error.message||""));
@@ -550,6 +586,7 @@ function mutate(t,table,id,row){
     if(queue.some(x=>mine(x)&&x.t==="ins"))queue=queue.filter(x=>!(x.table===table&&x.id===id&&x!==inflight)); // never reached the server: just cancel it
     else{queue=queue.filter(x=>!(mine(x)&&x.t==="upd"));queue.push({t:"del",table,id})}
   }
+  if(bulkMode)return;
   saveQ();saveC();refresh();netUI();flush();
 }
 async function flush(){
@@ -557,6 +594,11 @@ async function flush(){
   try{
     while(queue.length){
       const it=inflight=queue[0];let r;
+      if(it.t==="ins"&&!it.single){const batch=[it];for(let j=1;j<queue.length&&batch.length<50;j++){const q=queue[j];if(q.t==="ins"&&q.table===it.table&&!q.single)batch.push(q);else break}
+        if(batch.length>1){let br;try{br=await sb.from(it.table).upsert(batch.map(x=>({id:x.id,user_id:user.id,...x.row})))}catch(e){break}
+          if(isNet(br))break;
+          if(br.error){batch.forEach(x=>x.single=true);continue}
+          queue=queue.filter(x=>!batch.includes(x));saveQ();netUI();continue}}
       try{
         const tb=sb.from(it.table);
         r=it.t==="ins"?await tb.upsert({id:it.id,user_id:user.id,...it.row}):it.t==="upd"?await tb.update(it.row).eq("id",it.id):await tb.delete().eq("id",it.id);
@@ -774,7 +816,7 @@ function initMap(){
   base=tiles(true).addTo(map);
   layer=L.layerGroup().addTo(map);
   const zl=()=>map.getContainer().classList.toggle("nolab",map.getZoom()<14);map.on("zoomend",zl);zl();
-  map.on("click",e=>openPin({lat:e.latlng.lat,lng:e.latlng.lng}));
+  map.on("click",e=>{if(mvTarget){doMove(e.latlng.lat,e.latlng.lng);return}openPin({lat:e.latlng.lat,lng:e.latlng.lng})});
   if(navigator.geolocation)navigator.geolocation.watchPosition(p=>{
     const ll=[p.coords.latitude,p.coords.longitude];
     if(!meMark){meMark=L.circleMarker(ll,{radius:8,color:"#2b7fff",weight:4,fillColor:"#fff",fillOpacity:1}).addTo(map);map.setView(ll,18)}else meMark.setLatLng(ll)},
@@ -782,9 +824,9 @@ function initMap(){
   drawPins();
 }
 /* sold customers get a green dot + name label on the map automatically */
-let geoC=null,geoBusy=false;
-const geoLoad=()=>{if(!geoC){try{geoC=JSON.parse(localStorage.getItem(K("geo"))||"{}")}catch(e){geoC={}}}return geoC};
-const geoSave=()=>{try{localStorage.setItem(K("geo"),JSON.stringify(geoC))}catch(e){}};
+let geoC=null,geoBusy=false,autoDots=[],mvTarget=null;
+const geoLoad=()=>{if(!geoC){try{geoC=JSON.parse(localStorage.getItem(K("geo2"))||"{}")}catch(e){geoC={}}}return geoC};
+const geoSave=()=>{try{localStorage.setItem(K("geo2"),JSON.stringify(geoC))}catch(e){}};
 const addrKey=a=>String(a||"").trim().toLowerCase().replace(/\s+/g," ");
 const soldCust=()=>customers.filter(c=>["Scheduled","Done","Paid"].includes(c.status)&&addrKey(c.address));
 const nameKey=n=>String(n||"").trim().toLowerCase();
@@ -795,7 +837,7 @@ async function geoRun(){
   try{for(const c of todo.slice(0,40)){const k=addrKey(c.address);if(g[k]&&!g[k].f)continue;
     let prox="";const ll=meMark?meMark.getLatLng():(pins.length?{lat:pins[pins.length-1].lat,lng:pins[pins.length-1].lng}:null);if(ll)prox="&proximity="+ll.lng+","+ll.lat;
     try{const r=await fetch("https://api.mapbox.com/geocoding/v5/mapbox.places/"+encodeURIComponent(c.address.trim())+".json?limit=1&country=us&types=address,poi"+prox+"&access_token="+MAPBOX_TOKEN);
-      const f=r.ok?((await r.json()).features||[])[0]:null;g[k]=f?{lat:f.center[1],lng:f.center[0]}:{f:now};did=true}catch(e){break}
+      const f=r.ok?((await r.json()).features||[])[0]:null;g[k]=f?{lat:f.center[1],lng:f.center[0],a:((f.properties&&f.properties.accuracy)||"")==="street"||(f.place_type&&f.place_type[0]!=="address")?1:0}:{f:now};did=true}catch(e){break}
     await new Promise(z=>setTimeout(z,200))}}
   finally{geoBusy=false}
   if(did){geoSave();drawPins()}
@@ -804,15 +846,16 @@ function drawPins(){
   if(!mapReady)return;layer.clearLayers();
   const lab=n=>({permanent:true,direction:"top",offset:[0,-9],className:"kbname"});
   pins.forEach(p=>{const m=L.circleMarker([p.lat,p.lng],{radius:10,color:"#fff",weight:2,fillColor:COL[p.result],fillOpacity:1})
-    .on("click",e=>{L.DomEvent.stopPropagation(e);openPin(p)}).addTo(layer);
+    .on("click",e=>{L.DomEvent.stopPropagation(e);if(mvTarget){doMove(p.lat,p.lng);return}p.result==="Sold"?gdOpen({pin:p}):openPin(p)}).addTo(layer);
     if(p.result==="Sold"&&p.name)m.bindTooltip(esc(p.name),lab())});
+  autoDots=[];
   {const g=geoLoad(),have=new Set(pins.filter(p=>p.result==="Sold"&&p.name).map(p=>nameKey(p.name)));
-   soldCust().forEach(c=>{const v=g[addrKey(c.address)];if(!v||v.f||have.has(nameKey(c.name)))return;
-     L.circleMarker([v.lat,v.lng],{radius:10,color:"#fff",weight:2,fillColor:COL.Sold,fillOpacity:1})
-      .on("click",e=>{L.DomEvent.stopPropagation(e);openForm(c)}).bindTooltip(esc(c.name),lab()).addTo(layer)})}
+   soldCust().forEach(c=>{const v=g[addrKey(c.address)];if(!v||v.f||have.has(nameKey(c.name)))return;autoDots.push(c);
+     L.circleMarker([v.lat,v.lng],{radius:10,color:"#fff",weight:2,fillColor:COL.Sold,fillOpacity:v.a?.55:1,dashArray:v.a?"3 3":null})
+      .on("click",e=>{L.DomEvent.stopPropagation(e);if(mvTarget){doMove(v.lat,v.lng);return}gdOpen({cust:c})}).bindTooltip(esc(c.name)+(v.a?" ≈":""),lab()).addTo(layer)})}
+  const c=r=>pins.filter(p=>p.result===r).length+(r==="Sold"?autoDots.length:0);
+  $("kstats").innerHTML=["Sold","Quoted","Not home","No"].map(r=>`<div class="st"><b style="color:${COL[r]}">${c(r)}</b><span>${r==="Quoted"?"Quoted/<wbr>Waiting":r}</span></div>`).join("")+`<div class="st"><b>${pins.length+autoDots.length}</b><span>Doors</span></div>`;
   setTimeout(geoRun,0);
-  const c=r=>pins.filter(p=>p.result===r).length;
-  $("kstats").innerHTML=["Sold","Quoted","Not home","No"].map(r=>`<div class="st"><b style="color:${COL[r]}">${c(r)}</b><span>${r==="Quoted"?"Quoted/<wbr>Waiting":r}</span></div>`).join("")+`<div class="st"><b>${pins.length}</b><span>Doors</span></div>`;
 }
 $("kme").onclick=()=>{if(meMark)map.setView(meMark.getLatLng(),18);else $("kmsg").textContent="Waiting for your location…"};
 $("ksat").onclick=()=>{sat=!sat;map.removeLayer(base);base=tiles(sat).addTo(map);base.bringToBack();$("ksat").textContent=sat?"Street view":"Satellite"};
@@ -1488,6 +1531,77 @@ $("gsshow").onclick=gsOpen;$("gsopt").onclick=()=>{const d=$("paybtn").closest("
 $("gsx").onclick=()=>{try{localStorage.setItem("kb_gsx","1")}catch(e){}gsBar()};
 $("gs_x").onclick=()=>{$("gsv").pause();$("gsdlg").close()};$("gsdlg").addEventListener("close",()=>$("gsv").pause());
 gsBar();
+
+/* ---- green dot menu: link to customer / move ---- */
+let gdCur=null;
+function gdOpen(o){gdCur=o;const pin=o.pin,c=o.cust;
+  $("gd_t").textContent=(c?c.name:(pin.name||"Sold house"));
+  $("gd_s").textContent=c?"From your customer list. If the dot is on the wrong house, move it.":(pin.name?"Sold house":"Sold house with no customer attached yet");
+  $("gd_link").hidden=!(pin&&!pin.name);$("gd_open").hidden=!(c||(pin&&pin.name&&customers.some(x=>nameKey(x.name)===nameKey(pin.name))));$("gd_edit").hidden=!pin;
+  $("gdlg").showModal()}
+$("gd_x").onclick=()=>$("gdlg").close();
+$("gd_edit").onclick=()=>{$("gdlg").close();openPin(gdCur.pin)};
+$("gd_open").onclick=()=>{$("gdlg").close();const c=gdCur.cust||customers.find(x=>nameKey(x.name)===nameKey(gdCur.pin.name));if(c)openForm(c)};
+$("gd_move").onclick=()=>{mvTarget=gdCur;$("gdlg").close();$("mvbar").hidden=false};
+$("mv_x").onclick=()=>{mvTarget=null;$("mvbar").hidden=true};
+function doMove(lat,lng){const t=mvTarget;mvTarget=null;$("mvbar").hidden=true;if(!t)return;
+  if(t.pin)mutate("upd","pins",t.pin.id,{lat,lng});
+  else{const c=t.cust;mutate("ins","pins",newId(),{lat,lng,result:"Sold",name:c.name,phone:c.phone||"",service:c.service||"",price:+c.price||0})}
+  drawPins()}
+function cpList(){const q=$("cp_q").value.trim().toLowerCase(),used=new Set(pins.filter(p=>p.result==="Sold"&&p.name).map(p=>nameKey(p.name)));
+  const L_=customers.filter(c=>!q||[c.name,c.phone,c.address].some(v=>String(v||"").toLowerCase().includes(q))).sort((a,b)=>(used.has(nameKey(a.name))?1:0)-(used.has(nameKey(b.name))?1:0)).slice(0,60);
+  $("cp_l").innerHTML=L_.length?L_.map(c=>`<button class="opt" data-cp="${c.id}">${esc(c.name)}<br><small>${esc([c.phone,c.address,c.status].filter(Boolean).join(" · "))}</small></button>`).join(""):'<div class="sub">No customers match.</div>'}
+$("gd_link").onclick=()=>{$("gdlg").close();$("cp_q").value="";cpList();$("cpdlg").showModal()};
+$("cp_q").oninput=cpList;$("cp_x").onclick=()=>$("cpdlg").close();
+$("cp_l").onclick=e=>{const b=e.target.closest("[data-cp]");if(!b)return;const c=customers.find(x=>x.id===b.dataset.cp),pin=gdCur&&gdCur.pin;if(!c||!pin)return;
+  mutate("upd","pins",pin.id,{name:c.name,phone:c.phone||"",service:c.service||pin.service||"",price:+c.price||pin.price||0});
+  if(!String(c.address||"").trim()){(async()=>{try{const r=await fetch("https://api.mapbox.com/geocoding/v5/mapbox.places/"+pin.lng+","+pin.lat+".json?limit=1&types=address&access_token="+MAPBOX_TOKEN);const f=r.ok?((await r.json()).features||[])[0]:null;if(f)mutate("upd","customers",c.id,{address:mRcAddr(f)})}catch(err){}})()}
+  $("cpdlg").close();drawPins()};
+
+/* ---- import customers from another CRM (CSV) ---- */
+let impRows=[],impHead=[];
+function csvParse(t){t=t.replace(/^﻿/,"");const first=t.split(/\r?\n/)[0]||"";const cnt=d=>(first.match(new RegExp(d==="\t"?"\t":"\\"+d,"g"))||[]).length;
+  const d=[",",";","\t"].sort((a,b)=>cnt(b)-cnt(a))[0];const rows=[];let row=[],f="",q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;
+    else if(c===d){row.push(f);f=""}
+    else if(c==="\n"||c==="\r"){if(c==="\r"&&t[i+1]==="\n")i++;row.push(f);f="";if(row.some(x=>x.trim()))rows.push(row);row=[]}
+    else f+=c}
+  row.push(f);if(row.some(x=>x.trim()))rows.push(row);return rows}
+const IMP_F=[["name","Name (full)",/^(full ?name|name|customer( name)?|client( name)?|contact( name)?|display name)$/i],["first","First name",/^(first ?name|first|given name)$/i],["last","Last name",/^(last ?name|last|surname|family name)$/i],["phone","Phone",/(phone|mobile|cell|tel)/i],["email","Email",/e-?mail/i],["addr","Address",/^(street|street address|address( ?1| line 1)?|service address|property address|billing address)$/i],["city","City",/^city|town/i],["state","State",/^(state|province|region)$/i],["zip","ZIP",/(zip|postal)/i],["notes","Notes",/(notes?|comments?|memo|description)/i]];
+function impAuto(head){const m={};IMP_F.forEach(([k,,re])=>{const i=head.findIndex((h,ix)=>re.test(h.trim())&&!Object.values(m).includes(ix));m[k]=i});
+  if(m.name>=0&&m.first>=0&&m.last>=0){/* both: prefer first+last */m.name=-1}return m}
+const phDigits=v=>String(v||"").replace(/\D/g,"").replace(/^1(?=\d{10}$)/,"");
+function impKeys(o){const k=[];const p=phDigits(o.phone);if(p.length>=7)k.push("p"+p);if(o.email&&o.email.includes("@"))k.push("e"+o.email.trim().toLowerCase());if(!k.length&&o.name)k.push("n"+nameKey(o.name)+"|"+addrKey(o.address));return k}
+function impBuild(){const m={};IMP_F.forEach(([k])=>m[k]=+$("im_"+k).value);const g=(r,k)=>m[k]>=0?String(r[m[k]]||"").trim():"";
+  const have=new Set();customers.forEach(c=>impKeys(c).forEach(k=>have.add(k)));
+  const out=[],stat={new:0,dup:0,skip:0};
+  impRows.forEach(r=>{let name=g(r,"name");if(!name||m.first>=0||m.last>=0){const n2=(g(r,"first")+" "+g(r,"last")).trim();if(n2)name=n2}
+    const addr=[g(r,"addr"),[g(r,"city"),[g(r,"state"),g(r,"zip")].filter(Boolean).join(" ")].filter(Boolean).join(", ")].filter(Boolean).join(", ");
+    const o={name,phone:g(r,"phone"),email:g(r,"email"),address:addr,notes:g(r,"notes")};
+    if(!o.name&&!o.phone&&!o.email){stat.skip++;return}if(!o.name)o.name=o.phone||o.email;
+    const ks=impKeys(o);if(ks.some(k=>have.has(k))){stat.dup++;return}ks.forEach(k=>have.add(k));stat.new++;out.push(o)});
+  return{out,stat}}
+function impPreview(){const {out,stat}=impBuild();
+  $("imp_sum").textContent=impRows.length+" rows found: "+stat.new+" new"+(stat.dup?", "+stat.dup+" already in KnockBoard (skipped)":"")+(stat.skip?", "+stat.skip+" with no name, phone or email (skipped)":"")+".";
+  $("imp_pv").innerHTML=out.length?"Preview:<br>"+out.slice(0,4).map(o=>"• "+esc(o.name)+(o.phone?" · "+esc(o.phone):"")+(o.address?" · "+esc(o.address):"")).join("<br>")+(out.length>4?"<br>…and "+(out.length-4)+" more":""):"Nothing new to import.";
+  $("imp_go").hidden=!out.length;$("imp_go").textContent="Import "+out.length+" customer"+(out.length==1?"":"s");return out}
+$("impbtn").onclick=()=>{const d=$("paybtn").closest("dialog");if(d)d.close();$("imp1").hidden=false;$("imp2").hidden=true;$("imp_go").hidden=true;$("imp_err").textContent="";$("imp_f").value="";$("impdlg").showModal()};
+$("imp_x").onclick=()=>$("impdlg").close();
+$("imp_f").onchange=async()=>{const f=$("imp_f").files[0];if(!f)return;$("imp_err").textContent="";
+  if(/\.(xlsx|xls|numbers)$/i.test(f.name)){$("imp_err").textContent="That's an Excel file. Open it, choose Save As, CSV, then pick the CSV here.";return}
+  let t;try{t=await f.text()}catch(e){$("imp_err").textContent="Couldn't read that file.";return}
+  const rows=csvParse(t);if(rows.length<2){$("imp_err").textContent="Couldn't find any customers in that file. Make sure it's a CSV with a header row.";return}
+  impHead=rows[0].map(h=>String(h||"").trim());impRows=rows.slice(1,2001);const m=impAuto(impHead);
+  $("imp_map").innerHTML=IMP_F.map(([k,l])=>`<div class="row" style="align-items:center;margin:3px 0"><span style="flex:0 0 96px;font-size:13px">${l}</span><select id="im_${k}" style="flex:1"><option value="-1">(none)</option>${impHead.map((h,i)=>`<option value="${i}"${m[k]===i?" selected":""}>${esc(h||"Column "+(i+1))}</option>`).join("")}</select></div>`).join("");
+  IMP_F.forEach(([k])=>$("im_"+k).onchange=impPreview);
+  if(m.name<0&&m.first<0&&m.phone<0){$("imp_err").textContent="We couldn't find a name or phone column, so pick them below."}
+  $("imp1").hidden=true;$("imp2").hidden=false;impPreview()};
+$("imp_go").onclick=()=>{const out=impPreview();if(!out.length)return;const st=$("imp_st").value;bulkMode=true;
+  try{out.forEach(o=>mutate("ins","customers",newId(),{name:o.name,phone:o.phone,email:o.email,address:o.address,service:"",status:st,price:0,source:"Imported",job_date:null,follow_up:null,notes:o.notes||null}))}finally{bulkMode=false}
+  saveQ();saveC();refresh();netUI();flush();$("impdlg").close();
+  const msg="Imported "+out.length+" customer"+(out.length==1?"":"s")+".";if(typeof kbToast==="function")kbToast(msg);else alert(msg)};
 </script>
 </body>
 </html>
