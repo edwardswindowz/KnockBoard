@@ -226,7 +226,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <div id="tabK" hidden>
     <div class="sub" id="kmsg" style="margin-bottom:6px">Tap a house on the map to log it. Your white dot shows where you are.</div>
     <div id="map"></div>
-    <div class="row" style="margin-top:8px"><button id="kme" style="flex:1">Find me</button><button id="ksat" style="flex:1">Street view</button></div>
+    <div class="row" style="margin-top:8px"><button id="kme" style="flex:1">Find me</button><button id="kpin" style="flex:1">Pin my spot</button><button id="ksat" style="flex:1">Satellite ▸</button></div>
     <div class="stats" id="kstats" style="margin-top:10px"></div>
   </div>
   <div id="tabP" hidden>
@@ -858,7 +858,13 @@ function drawPins(){
   setTimeout(geoRun,0);
 }
 $("kme").onclick=()=>{if(meMark)map.setView(meMark.getLatLng(),18);else $("kmsg").textContent="Waiting for your location…"};
-$("ksat").onclick=()=>{sat=!sat;map.removeLayer(base);base=tiles(sat).addTo(map);base.bringToBack();$("ksat").textContent=sat?"Street view":"Satellite"};
+const MAPNAMES=["Satellite","Satellite 2","Streets"];let mapMode=0;
+function tilesMode(m){
+  if(m===1)return L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Esri"});
+  if(m===2&&MAPBOX_TOKEN.startsWith("pk."))return L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}?access_token="+MAPBOX_TOKEN,{tileSize:512,zoomOffset:-1,maxZoom:19,attribution:"© Mapbox © OpenStreetMap"});
+  return tiles(true)}
+$("ksat").onclick=()=>{mapMode=(mapMode+1)%3;map.removeLayer(base);base=tilesMode(mapMode).addTo(map);base.bringToBack();$("ksat").textContent=MAPNAMES[mapMode]+" ▸";$("kmsg").textContent=mapMode===0?"Satellite":mapMode===1?"Satellite 2: a different photo source, sometimes newer.":"Streets: shows newer roads and lots that photos don't have yet."};
+$("kpin").onclick=()=>{if(!meMark){$("kmsg").textContent="Waiting for your location…";return}const ll=meMark.getLatLng();openPin({lat:ll.lat,lng:ll.lng})};
 
 function setF(r){$("p_save").textContent=r==="Quoted"?"Save quote":"Save sale";$("p_dl").textContent=r==="Quoted"?"Follow-up date":"Date"}
 function openPin(p){
