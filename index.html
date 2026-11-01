@@ -46,6 +46,7 @@ dialog::backdrop{background:#000b}
 #gsbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#0d3a2a,#0a0a0a);border:1px solid #2fbf7a66;border-radius:16px;padding:10px 10px 10px 12px;margin:0 0 12px}#gsbar[hidden]{display:none}#gsbar .ib-i{font-size:26px}#gsbar .ib-t{flex:1;min-width:0}#gsbar .ib-t b{display:block;font-size:14px}#gsbar .ib-t small{color:#9aa6bd;font-size:12px}#gsbar .pri{padding:9px 14px;font-size:14px;border-radius:12px}#gsbar #gsx{background:none;border:none;color:#8c97ad;font-size:16px;padding:6px}#gsdlg video{width:100%;max-height:68vh;border-radius:14px;background:#000;display:block}
 .hlp{margin:6px 0 2px;font-size:13px}.hlp summary{color:#6aa5ff;cursor:pointer;font-weight:700;list-style:none}.hlp summary::-webkit-details-marker{display:none}.hlp ol{margin:8px 0 4px;padding-left:20px;color:#b9c3d6;line-height:1.5}.hlp li{margin:3px 0}.hlp .tip{color:#9aa6bd;font-size:12px;margin-top:4px}
 .kbname{background:#0b1220e6;color:#fff;border:1.5px solid #2f9e44;font-weight:800;font-size:12px;padding:2px 7px;border-radius:9px;box-shadow:0 2px 8px #0008;white-space:nowrap}.kbname:before{display:none}.nolab .kbname{display:none}#mvbar[hidden]{display:none!important}
+.rbar{display:flex;align-items:center;gap:8px;margin:-2px 0 8px;padding-bottom:8px;border-bottom:1px dashed var(--b)}.rbar .grip{font-size:26px;line-height:1;padding:2px 12px;color:var(--m);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.rbar button{padding:6px 14px;font-size:15px}.card.dragging{opacity:.45}.card.dropb{box-shadow:0 -3px 0 var(--a)}.card.dropa{box-shadow:0 3px 0 var(--a)}
 #instbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#10224a,#0a0a0a);border:1px solid #2b7fff66;border-radius:16px;padding:10px 10px 10px 12px;margin:0 0 12px}
 #instbar[hidden]{display:none}
 #instbar .ib-i{font-size:26px}#instbar .ib-t{flex:1;min-width:0}#instbar .ib-t b{display:block;font-size:14px}#instbar .ib-t small{color:#9aa6bd;font-size:12px}
@@ -238,6 +239,7 @@ html[data-theme=light] .due{color:#d33}
     <input id="q" placeholder="Search name, phone, address">
     <div class="chips" id="chips"></div>
     <div class="sendrow"><button id="selall">Select all</button><button id="grp">Group text</button><button id="one">One by one</button></div>
+    <div id="reordrow" style="display:flex;gap:8px;align-items:center;margin:0 0 8px"><button id="reordbtn" style="flex:none">↕ Reorder customers</button><span class="sub" id="reordnote" hidden style="flex:1">Drag ≡ or tap ▲ ▼ to move.</span><button id="reordreset" hidden style="flex:none">Newest first</button></div>
     <div id="selnote" class="sub" style="margin-bottom:8px;color:#f08c00" hidden></div>
     <div class="sub" style="margin-bottom:10px">Group text puts everyone in one thread (no names). One by one opens a separate message for each customer; you tap Send in Messages for each.</div>
     <div id="list"></div>
@@ -670,6 +672,15 @@ setInterval(()=>{if(queue.length)flush()},15000);
 if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 
 /* ---------- Customers ---------- */
+let ordMap=null,reord=false,vis2=[];
+function ordGet(){if(!ordMap){ordMap=new Map(lsGet(K("ord"),[]).map((id,i)=>[id,i]))}return ordMap}
+function byOrder(a,b){const m=ordGet(),ia=m.has(a.id)?m.get(a.id):-1,ib=m.has(b.id)?m.get(b.id):-1;
+  if(ia<0&&ib<0)return String(b.created_at||"").localeCompare(String(a.created_at||""))||(a.follow_up||"9999").localeCompare(b.follow_up||"9999");
+  if(ia<0)return -1;if(ib<0)return 1;return ia-ib}
+function moveCust(id,where,targetId){if(id===targetId)return;const full=[...customers].sort(byOrder).map(c=>c.id);
+  full.splice(full.indexOf(id),1);const b=full.indexOf(targetId);if(b<0)return;full.splice(where==="after"?b+1:b,0,id);
+  lsSet(K("ord"),full);ordMap=null;render()}
+function reordUI(){$("reordbtn").textContent=reord?"Done":"↕ Reorder customers";$("reordnote").hidden=!reord;$("reordreset").hidden=!reord}
 function render(){
   revUI();if(typeof homeUI==="function"){homeUI();qaList()}
   const q=$("q").value.toLowerCase().trim(),open=customers.filter(r=>["Lead","Quoted"].includes(r.status)),
@@ -681,13 +692,14 @@ function render(){
     <div class="st"><b>${money(customers.filter(r=>r.status==="Paid").reduce((a,r)=>a+(+r.price||0),0))}</b><span>Paid revenue</span></div>`;
   $("chips").innerHTML=["All",...ST].map(s=>`<button class="chip ${s===filter?"on":""}" data-s="${s}">${s}${s==="All"?"":" ("+customers.filter(r=>r.status===s).length+")"}</button>`).join("");
   const list=customers.filter(r=>(filter==="All"||r.status===filter)&&(!q||[r.name,r.phone,r.address,r.email].join(" ").toLowerCase().includes(q)))
-    .sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))||(a.follow_up||"9999").localeCompare(b.follow_up||"9999"));
+    .sort(byOrder);
+  vis2=list.map(r=>r.id);
   vis=list.filter(r=>(r.phone||"").replace(/\D/g,"")).map(r=>r.id);nph=list.filter(r=>!(r.phone||"").replace(/\D/g,""));
   for(const id of [...sel])if(!customers.some(c=>c.id===id))sel.delete(id);
   updSel();
   $("list").innerHTML=list.length?list.map(r=>{
     const ph=(r.phone||"").replace(/[^\d+]/g,""),late=r.follow_up&&r.follow_up<=today(),next=ST[ST.indexOf(r.status)+1];
-    return `<div class="card"><div class="top"><div style="display:flex;gap:10px;min-width:0">${ph?`<input type="checkbox" data-sel="${r.id}" ${sel.has(r.id)?"checked":""}>`:""}<div><div class="nm">${esc(r.name)}</div>${signedBadge(r)}
+    return `<div class="card" data-cid="${r.id}">${reord?`<div class="rbar"><span class="grip" data-grip="${r.id}">≡</span><button data-mv="up" data-id="${r.id}">▲</button><button data-mv="dn" data-id="${r.id}">▼</button></div>`:""}<div class="top"><div style="display:flex;gap:10px;min-width:0">${ph?`<input type="checkbox" data-sel="${r.id}" ${sel.has(r.id)?"checked":""}>`:""}<div><div class="nm">${esc(r.name)}</div>${signedBadge(r)}
       <div class="sub">${esc(r.service)}${r.price?" · "+money(r.price):""}</div>${itemsLine(r)?`<div class="sub">${esc(itemsLine(r))}</div>`:""}${splitNote(r.notes).solar?`<div class="sub">Solar: ${solLine(splitNote(r.notes).solar)}</div>`:""}${splitNote(r.notes).plan?`<div class="sub">Plan: ${money(splitNote(r.notes).plan.p)} ${PLANL[splitNote(r.notes).plan.m]||""}</div>`:""}
       ${r.address?`<div class="sub">${esc(r.address)}</div>`:""}
       ${r.job_date?`<div class="sub">Job: ${esc(r.job_date)}${splitNote(r.notes).time?" · "+fmtT(splitNote(r.notes).time):""}</div>`:""}
@@ -1653,6 +1665,26 @@ function themeApply(l){const h=document.documentElement;if(l)h.setAttribute("dat
   $("thsm").textContent=l?"Light mode · tap to switch to dark":"Dark mode · tap to switch to light"}
 $("thbtn").onclick=()=>{const l=document.documentElement.getAttribute("data-theme")!=="light";try{localStorage.setItem("kb_theme",l?"light":"dark")}catch(e){}themeApply(l)};
 themeApply(document.documentElement.getAttribute("data-theme")==="light");
+
+/* ---- reorder customers ---- */
+$("reordbtn").onclick=()=>{reord=!reord;reordUI();render()};
+$("reordreset").onclick=()=>{if(!confirm("Go back to newest customers first?"))return;try{localStorage.removeItem(K("ord"))}catch(e){}ordMap=null;render()};
+$("list").addEventListener("click",e=>{const b=e.target.closest("[data-mv]");if(!b)return;const id=b.dataset.id,i=vis2.indexOf(id);
+  if(b.dataset.mv==="up"&&i>0)moveCust(id,"before",vis2[i-1]);else if(b.dataset.mv==="dn"&&i>=0&&i<vis2.length-1)moveCust(id,"after",vis2[i+1])});
+(()=>{let drag=null,tgt=null,pos="before",tm=null;
+  const clear=()=>document.querySelectorAll(".dropb,.dropa,.dragging").forEach(e=>e.classList.remove("dropb","dropa","dragging"));
+  $("list").addEventListener("pointerdown",e=>{const g=e.target.closest("[data-grip]");if(!g)return;e.preventDefault();drag=g.dataset.grip;tgt=null;
+    const c=g.closest(".card");c&&c.classList.add("dragging");try{g.setPointerCapture(e.pointerId)}catch(err){}
+    clearInterval(tm);tm=setInterval(()=>{if(!drag)return;if(lastY<90)scrollBy(0,-14);else if(lastY>innerHeight-90)scrollBy(0,14)},16)});
+  let lastY=0;
+  $("list").addEventListener("pointermove",e=>{if(!drag)return;lastY=e.clientY;
+    const el=document.elementFromPoint(e.clientX,e.clientY),c=el&&el.closest&&el.closest("#list .card[data-cid]");
+    document.querySelectorAll(".dropb,.dropa").forEach(x=>x.classList.remove("dropb","dropa"));
+    if(!c||c.dataset.cid===drag){tgt=null;return}
+    const r=c.getBoundingClientRect();pos=e.clientY<r.top+r.height/2?"before":"after";tgt=c.dataset.cid;c.classList.add(pos==="before"?"dropb":"dropa")});
+  const end=()=>{clearInterval(tm);if(!drag)return;const d=drag,t=tgt,p=pos;drag=null;tgt=null;clear();if(t)moveCust(d,p,t)};
+  $("list").addEventListener("pointerup",end);$("list").addEventListener("pointercancel",()=>{drag=null;tgt=null;clearInterval(tm);clear()});
+})();
 </script>
 </body>
 </html>
