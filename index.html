@@ -208,6 +208,10 @@ details.mo>.acts>*{background:transparent}
 .wseg path{opacity:.94}#wctr circle{fill:#14171d}
 
 .wtc{padding:14px 16px}.wtm{display:flex;align-items:center;gap:14px}.wtm>b{font-size:42px;line-height:1;font-weight:800}.wtn{font-size:17px;font-weight:700}.wtl{margin-top:10px;font-size:14px;color:var(--m)}
+
+#wtcard{cursor:pointer}.wtx{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:10px;color:var(--a);font-size:13px;font-weight:700}.wtx .ico{width:16px;height:16px}
+.wtw{margin-top:8px;border-top:1px solid var(--b)}.wtd{display:grid;grid-template-columns:44px 1fr 44px 78px;align-items:center;gap:6px;padding:9px 0;border-bottom:1px solid var(--b);font-size:14px}.wtd:last-child{border-bottom:none}
+.wtd .wtc2{color:var(--m)}.wtd .wtr{text-align:right;color:var(--m)}.wtd .wtr.hi{color:#4dabf7;font-weight:700}.wtd .wtt{text-align:right;font-weight:600}
 /* ---- light theme ---- */
 html[data-theme=light] .hd{background:rgba(244,246,250,.9)}
 html[data-theme=light]{--bg:#f4f6fa;--c:#ffffff;--b:#d9dfe9;--t:#111827;--m:#5b6678;color-scheme:light}
@@ -1392,15 +1396,15 @@ function knockCard(){
 /* ---- today's weather card ---- */
 const WXC=c=>c===0?"Clear":c<=2?"Partly cloudy":c===3?"Overcast":c<=48?"Foggy":c<=57?"Drizzle":c<=67?"Rain":c<=77?"Snow":c<=82?"Showers":c<=86?"Snow showers":"Thunderstorms";
 async function wtGet(force){
-  const c=lsGet(K("wt"),null);if(!force&&c&&Date.now()-c.t<30*6e4)return c;
+  const c=lsGet(K("wt"),null);if(!force&&c&&c.days&&Date.now()-c.t<30*6e4)return c;
   let loc=lsGet(K("loc"),null);
   if(!loc)loc=await new Promise(r=>{setTimeout(()=>r(null),10000);if(!navigator.geolocation)return r(null);navigator.geolocation.getCurrentPosition(p=>r({lat:+p.coords.latitude.toFixed(2),lng:+p.coords.longitude.toFixed(2)}),()=>r(null),{timeout:8000,maximumAge:864e5})});
   if(!loc)return c;lsSet(K("loc"),loc);
-  const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+loc.lat+"&longitude="+loc.lng+"&current=temperature_2m,weather_code,wind_speed_10m&hourly=precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=1");
+  const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+loc.lat+"&longitude="+loc.lng+"&current=temperature_2m,weather_code,wind_speed_10m&hourly=precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=7");
   if(!r.ok)return c;const j=await r.json(),h=j.hourly||{},now=new Date(),hrs=[];
-  (h.time||[]).forEach((t,i)=>{const d=new Date(t);if(d>=new Date(now.getTime()-36e5)&&d.getHours()<=20)hrs.push({h:d.getHours(),p:h.precipitation_probability[i]||0})});
+  (h.time||[]).forEach((t,i)=>{const d=new Date(t);if(d.toDateString()===now.toDateString()&&d>=new Date(now.getTime()-36e5)&&d.getHours()<=20)hrs.push({h:d.getHours(),p:h.precipitation_probability[i]||0})});
   const peak=hrs.reduce((a,b)=>b.p>(a?a.p:-1)?b:a,null);
-  const o={t:Date.now(),temp:Math.round(j.current.temperature_2m),code:j.current.weather_code,wind:Math.round(j.current.wind_speed_10m),hi:Math.round(j.daily.temperature_2m_max[0]),lo:Math.round(j.daily.temperature_2m_min[0]),rain:j.daily.precipitation_probability_max[0]||0,peak:peak&&peak.p>=30?peak:null};
+  const o={t:Date.now(),temp:Math.round(j.current.temperature_2m),code:j.current.weather_code,wind:Math.round(j.current.wind_speed_10m),hi:Math.round(j.daily.temperature_2m_max[0]),lo:Math.round(j.daily.temperature_2m_min[0]),rain:j.daily.precipitation_probability_max[0]||0,peak:peak&&peak.p>=30?peak:null,days:(j.daily.time||[]).map((d,i)=>({d,code:j.daily.weather_code[i],hi:Math.round(j.daily.temperature_2m_max[i]),lo:Math.round(j.daily.temperature_2m_min[i]),rain:j.daily.precipitation_probability_max[i]||0}))};
   lsSet(K("wt"),o);return o}
 const fmtH=h=>(h%12||12)+(h<12?" AM":" PM");
 function wtRender(){
@@ -1408,7 +1412,9 @@ function wtRender(){
   if(!w){el.innerHTML=lsGet(K("loc"),null)?"":`<div class="card wtc"><div class="sub">Weather needs your location.</div><button class="mini" id="wtgo">Show today's weather</button></div>`;const b=$("wtgo");if(b)b.onclick=()=>wtUpdate(true);return}
   const line=w.rain>=30?(w.peak?`${w.rain}% chance of rain, likeliest around ${fmtH(w.peak.h)}`:`${w.rain}% chance of rain today`):"No rain expected today";
   const tip=w.rain>=50?"Rain likely. Check your jobs for today.":w.wind>=20?"Windy today. Rough on window cleaning.":w.rain>=30?"Could get wet. Keep an eye on the sky.":"Good day to work.";
-  el.innerHTML=`<div class="card wtc"><div class="wtm"><b>${w.temp}°</b><div><div class="wtn">${WXC(w.code)}</div><div class="sub">High ${w.hi}° · Low ${w.lo}° · Wind ${w.wind} mph</div></div></div><div class="wtl">${line}. ${tip}</div></div>`}
+  const wk=(w.days||[]).slice(1).map(x=>`<div class="wtd"><span>${new Date(x.d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"})}</span><span class="wtc2">${WXC(x.code)}</span><span class="wtr${x.rain>=50?" hi":""}">${x.rain}%</span><span class="wtt">${x.hi}° / ${x.lo}°</span></div>`).join("");
+  el.innerHTML=`<div class="card wtc" id="wtcard" role="button" tabindex="0" aria-expanded="${window.wtOpen?"true":"false"}"><div class="wtm"><b>${w.temp}°</b><div><div class="wtn">${WXC(w.code)}</div><div class="sub">High ${w.hi}° · Low ${w.lo}° · Wind ${w.wind} mph</div></div></div><div class="wtl">${line}. ${tip}</div>${wk?`<div class="wtx"><span>${window.wtOpen?"Hide this week":"This week"}</span><svg class="ico" viewBox="0 0 24 24"><path d="${window.wtOpen?"M6 15l6-6 6 6":"M6 9l6 6 6-6"}"/></svg></div>`:""}${window.wtOpen?`<div class="wtw">${wk}</div>`:""}</div>`;
+  const cd=$("wtcard");if(cd&&wk){const tg=()=>{window.wtOpen=!window.wtOpen;wtRender()};cd.onclick=tg;cd.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();tg()}}}}
 let wtBusy=false;
 async function wtUpdate(force){wtRender();if(wtBusy||!navigator.onLine)return;wtBusy=true;try{await wtGet(force)}catch(e){}wtBusy=false;wtRender()}
 let wxBusy=false;
