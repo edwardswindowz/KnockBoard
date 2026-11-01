@@ -206,6 +206,8 @@ details.mo>.acts>*{background:transparent}
 #tabK #kstats .kmore .ico{width:22px;height:22px}
 #wcap{color:#fff;opacity:.8;font-size:13px;text-align:center;padding:0 24px}
 .wseg path{opacity:.94}#wctr circle{fill:#14171d}
+
+.wtc{padding:14px 16px}.wtm{display:flex;align-items:center;gap:14px}.wtm>b{font-size:42px;line-height:1;font-weight:800}.wtn{font-size:17px;font-weight:700}.wtl{margin-top:10px;font-size:14px;color:var(--m)}
 /* ---- light theme ---- */
 html[data-theme=light] .hd{background:rgba(244,246,250,.9)}
 html[data-theme=light]{--bg:#f4f6fa;--c:#ffffff;--b:#d9dfe9;--t:#111827;--m:#5b6678;color-scheme:light}
@@ -281,6 +283,7 @@ html[data-theme=light] .due{color:#d33}
   <div id="tabH">
     <div id="gsbar" hidden><div class="ib-t"><b>New here? Get started in 2 minutes</b><small>Watch how to set up payments, quotes and invoices</small></div><button id="gsshow" class="pri">Watch</button><button id="gsx" aria-label="Dismiss">✕</button></div>
     <div id="instbar" hidden><div class="ib-t"><b>Use KnockBoard like an app</b><small>Add it to your home screen in a few taps</small></div><button id="instshow" class="pri">Show me</button><button id="instx" aria-label="Dismiss">✕</button></div>
+    <div id="hwt"></div>
     <div id="hwx"></div>
     <div class="card next" id="hnext"></div>
     <div id="hday"></div>
@@ -300,7 +303,7 @@ html[data-theme=light] .due{color:#d33}
       <div id="selnote" class="sub" style="margin-bottom:8px;color:#f08c00" hidden></div>
       <div class="sub" style="margin-bottom:8px">Tick customers, then send. Group text puts everyone in one thread (no names). One by one opens a separate message for each customer.</div>
       <details id="tplbox"><summary>Text message template</summary>
-        <textarea id="tpl" style="min-height:90px"></textarea><div class="savrow"><button class="pri" data-savefor="tpl">Save</button><span class="savd" hidden>Saved</span></div>
+        <textarea id="tpl" style="min-height:90px"></textarea><div class="savrow"><button class="pri" data-savefor="tpl">Save</button><button id="tplpol" type="button">Clean up wording</button><span class="savd" id="tplpd" hidden>Saved</span></div>
         <div class="sub">{name} becomes each customer's first name. Saved on this phone.</div>
         <label>Your Google review link (for the “Ask for review” button)</label><input id="revlink" placeholder="https://g.page/r/..."><div class="savrow"><button class="pri" data-savefor="revlink">Save</button><span class="savd" hidden>Saved</span></div></details>
     </div>
@@ -1385,6 +1388,29 @@ function knockCard(){
   let st=0;const d=new Date();if(!days.has(ymd(d)))d.setDate(d.getDate()-1);while(days.has(ymd(d))){st++;d.setDate(d.getDate()-1)}
   const row=(l,a)=>`<div class="kn"><span class="t">${l}</span><div><b>${a.doors}</b><small>doors</small></div><div><b>${a.sold}</b><small>sold</small></div><div><b>${a.q}</b><small>quoted</small></div><div><b>${a.rate}%</b><small>close</small></div></div>`;
   el.hidden=false;el.innerHTML=`<div class="sec" style="margin:0 0 4px"><h3>Door knocking</h3><span class="sub">${st>1?st+"-day streak":"Keep it rolling"}</span></div>`+row("Today",agg(x=>x===T))+row("This week",agg(x=>x>=WK))}
+
+/* ---- today's weather card ---- */
+const WXC=c=>c===0?"Clear":c<=2?"Partly cloudy":c===3?"Overcast":c<=48?"Foggy":c<=57?"Drizzle":c<=67?"Rain":c<=77?"Snow":c<=82?"Showers":c<=86?"Snow showers":"Thunderstorms";
+async function wtGet(force){
+  const c=lsGet(K("wt"),null);if(!force&&c&&Date.now()-c.t<30*6e4)return c;
+  let loc=lsGet(K("loc"),null);
+  if(!loc)loc=await new Promise(r=>{setTimeout(()=>r(null),10000);if(!navigator.geolocation)return r(null);navigator.geolocation.getCurrentPosition(p=>r({lat:+p.coords.latitude.toFixed(2),lng:+p.coords.longitude.toFixed(2)}),()=>r(null),{timeout:8000,maximumAge:864e5})});
+  if(!loc)return c;lsSet(K("loc"),loc);
+  const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+loc.lat+"&longitude="+loc.lng+"&current=temperature_2m,weather_code,wind_speed_10m&hourly=precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=1");
+  if(!r.ok)return c;const j=await r.json(),h=j.hourly||{},now=new Date(),hrs=[];
+  (h.time||[]).forEach((t,i)=>{const d=new Date(t);if(d>=new Date(now.getTime()-36e5)&&d.getHours()<=20)hrs.push({h:d.getHours(),p:h.precipitation_probability[i]||0})});
+  const peak=hrs.reduce((a,b)=>b.p>(a?a.p:-1)?b:a,null);
+  const o={t:Date.now(),temp:Math.round(j.current.temperature_2m),code:j.current.weather_code,wind:Math.round(j.current.wind_speed_10m),hi:Math.round(j.daily.temperature_2m_max[0]),lo:Math.round(j.daily.temperature_2m_min[0]),rain:j.daily.precipitation_probability_max[0]||0,peak:peak&&peak.p>=30?peak:null};
+  lsSet(K("wt"),o);return o}
+const fmtH=h=>(h%12||12)+(h<12?" AM":" PM");
+function wtRender(){
+  const el=$("hwt");if(!el)return;const w=lsGet(K("wt"),null);
+  if(!w){el.innerHTML=lsGet(K("loc"),null)?"":`<div class="card wtc"><div class="sub">Weather needs your location.</div><button class="mini" id="wtgo">Show today's weather</button></div>`;const b=$("wtgo");if(b)b.onclick=()=>wtUpdate(true);return}
+  const line=w.rain>=30?(w.peak?`${w.rain}% chance of rain, likeliest around ${fmtH(w.peak.h)}`:`${w.rain}% chance of rain today`):"No rain expected today";
+  const tip=w.rain>=50?"Rain likely. Check your jobs for today.":w.wind>=20?"Windy today. Rough on window cleaning.":w.rain>=30?"Could get wet. Keep an eye on the sky.":"Good day to work.";
+  el.innerHTML=`<div class="card wtc"><div class="wtm"><b>${w.temp}°</b><div><div class="wtn">${WXC(w.code)}</div><div class="sub">High ${w.hi}° · Low ${w.lo}° · Wind ${w.wind} mph</div></div></div><div class="wtl">${line}. ${tip}</div></div>`}
+let wtBusy=false;
+async function wtUpdate(force){wtRender();if(wtBusy||!navigator.onLine)return;wtBusy=true;try{await wtGet(force)}catch(e){}wtBusy=false;wtRender()}
 let wxBusy=false;
 const wxDay=k=>new Date(k+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
 async function wxGet(){
@@ -1405,7 +1431,7 @@ function wxRender(){
     return `<div class="card wxc"><span class="lb">Rain alert</span><div style="font-size:17px;margin-top:4px"><b>${wxDay(d)}</b> · ${wx.days[d].p}% chance</div><div class="sub">${js.length} job${js.length===1?"":"s"} · ${money(tot)} could get rained out</div>`
      +js.map(c=>{const ph=phoneOfC(c),tm=splitNote(c.notes).time;return `<div class="wxr"><span>${tm?fmtT(tm)+" · ":""}${esc(c.name)}</span>${ph?`<a class="btn mini" href="${smsHref([ph],jobMsg("rain",c))}">Text to reschedule</a>`:`<button class="mini" data-edit="${c.id}">Edit</button>`}</div>`}).join("")+`</div>`}).join("")}
 async function wxUpdate(){
-  wxRender();
+  wtUpdate();wxRender();
   if(wxBusy||!navigator.onLine)return;
   if(!customers.some(c=>c.status==="Scheduled"&&c.job_date&&c.job_date>=today()))return;
   wxBusy=true;try{await wxGet()}catch(e){}wxBusy=false;wxRender()}
@@ -1812,6 +1838,19 @@ bnavSync();
 
 document.querySelectorAll("[data-savefor]").forEach(b=>b.onclick=()=>{const i=$(b.dataset.savefor);i.oninput&&i.oninput();const d=b.parentNode.querySelector(".savd");d.hidden=false;clearTimeout(d._t);d._t=setTimeout(()=>d.hidden=true,2200)});
 document.querySelectorAll("#bizname,#revlink,#tpl").forEach(i=>i.addEventListener("input",()=>{const d=i.parentNode.querySelector(".savd");if(d)d.hidden=true}));
+
+/* ---- text polish (rule-based clean-up) ---- */
+function polishText(t){
+  const fix={dont:"don't",cant:"can't",wont:"won't",im:"I'm",ive:"I've",id:"I'd",thats:"that's",whats:"what's",youre:"you're",theyre:"they're",didnt:"didn't",doesnt:"doesn't",isnt:"isn't",wasnt:"wasn't",couldnt:"couldn't",wouldnt:"wouldn't",shouldnt:"shouldn't",havent:"haven't",hasnt:"hasn't",arent:"aren't",werent:"weren't",lets:"let's",u:"you",ur:"your",pls:"please",plz:"please",thx:"thanks",ty:"thank you",gonna:"going to",wanna:"want to",gotta:"have to",tmrw:"tomorrow",tmr:"tomorrow",tho:"though",bc:"because",cuz:"because",ok:"OK",okay:"OK",alot:"a lot",definately:"definitely",recieve:"receive",seperate:"separate",thier:"their",teh:"the",wich:"which",appointmnet:"appointment",apointment:"appointment",estimte:"estimate",quoet:"quote"};
+  const keep=[];t=String(t||"").replace(/\{[^}]*\}|https?:\/\/\S+|\S+@\S+\.\S+|\$[\w.]+/g,m=>{keep.push(m);return "\u0001"+(keep.length-1)+"\u0001"});
+  t=t.replace(/\bits (ok|okay|a|the|going|time)\b/gi,"it's $1").replace(/[ \t]+/g," ").replace(/ *\n */g,"\n").replace(/\bi\b/g,"I").replace(/\bi(m|ll|ve|d)\b/gi,(m,x)=>"I'"+x.toLowerCase())
+   .replace(/\b[A-Za-z]+\b/g,w=>{const k=w.toLowerCase();return fix[k]&&!(k==="id"&&w==="ID")&&!(k==="lets"&&/^[A-Z]/.test(w)===false&&false)?fix[k]:w})
+   .replace(/(\s*,){2,}/g,",").replace(/^((?:hi|hey|hello)\s+\u0001\d+\u0001)(?=[ ]+[A-Za-z])/gim,"$1,").replace(/\s+([,.!?;:])/g,"$1").replace(/([,;:])(?=\S)/g,"$1 ").replace(/([.!?])(?=[A-Za-z])/g,"$1 ").replace(/([!?.]){2,}/g,m=>m[0]==="."&&m.length>=3?"...":m[0]).replace(/,{2,}/g,",");
+  t=t.split("\n").map(line=>{line=line.trim();if(!line)return line;
+    line=line.replace(/(^|[.!?]\s+)([a-z])/g,(m,a,b)=>a+b.toUpperCase());
+    if(/[A-Za-z0-9)\u0001]$/.test(line))line+=/^(hi|hey|hello|good (morning|afternoon|evening))[^.!?]*$/i.test(line)&&line.length<30?",":"."; return line}).join("\n");
+  return t.replace(/\u0001(\d+)\u0001/g,(m,i)=>keep[+i]).replace(/\bI I\b/g,"I")}
+$("tplpol").onclick=()=>{const v=$("tpl").value,o=polishText(v);if(o!==v){$("tpl").value=o;$("tpl").oninput&&$("tpl").oninput();$("tplpd").textContent="Cleaned up and saved"}else $("tplpd").textContent="Looks good already";$("tplpd").hidden=false;setTimeout(()=>$("tplpd").hidden=true,2600)};
 </script>
 </body>
 </html>
