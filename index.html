@@ -303,7 +303,7 @@ html[data-theme=light] .due{color:#d33}
       <div id="selnote" class="sub" style="margin-bottom:8px;color:#f08c00" hidden></div>
       <div class="sub" style="margin-bottom:8px">Tick customers, then send. Group text puts everyone in one thread (no names). One by one opens a separate message for each customer.</div>
       <details id="tplbox"><summary>Text message template</summary>
-        <textarea id="tpl" style="min-height:90px"></textarea><div class="savrow"><button class="pri" data-savefor="tpl">Save</button><button id="tplpol" type="button">Clean up wording</button><span class="savd" id="tplpd" hidden>Saved</span></div>
+        <textarea id="tpl" style="min-height:90px"></textarea><div class="savrow"><button class="pri" data-savefor="tpl">Save</button><span class="savd" hidden>Saved</span></div>
         <div class="sub">{name} becomes each customer's first name. Saved on this phone.</div>
         <label>Your Google review link (for the “Ask for review” button)</label><input id="revlink" placeholder="https://g.page/r/..."><div class="savrow"><button class="pri" data-savefor="revlink">Save</button><span class="savd" hidden>Saved</span></div></details>
     </div>
@@ -1839,18 +1839,6 @@ bnavSync();
 document.querySelectorAll("[data-savefor]").forEach(b=>b.onclick=()=>{const i=$(b.dataset.savefor);i.oninput&&i.oninput();const d=b.parentNode.querySelector(".savd");d.hidden=false;clearTimeout(d._t);d._t=setTimeout(()=>d.hidden=true,2200)});
 document.querySelectorAll("#bizname,#revlink,#tpl").forEach(i=>i.addEventListener("input",()=>{const d=i.parentNode.querySelector(".savd");if(d)d.hidden=true}));
 
-/* ---- text polish (rule-based clean-up) ---- */
-function polishText(t){
-  const fix={dont:"don't",cant:"can't",wont:"won't",im:"I'm",ive:"I've",id:"I'd",thats:"that's",whats:"what's",youre:"you're",theyre:"they're",didnt:"didn't",doesnt:"doesn't",isnt:"isn't",wasnt:"wasn't",couldnt:"couldn't",wouldnt:"wouldn't",shouldnt:"shouldn't",havent:"haven't",hasnt:"hasn't",arent:"aren't",werent:"weren't",lets:"let's",u:"you",ur:"your",pls:"please",plz:"please",thx:"thanks",ty:"thank you",gonna:"going to",wanna:"want to",gotta:"have to",tmrw:"tomorrow",tmr:"tomorrow",tho:"though",bc:"because",cuz:"because",ok:"OK",okay:"OK",alot:"a lot",definately:"definitely",recieve:"receive",seperate:"separate",thier:"their",teh:"the",wich:"which",appointmnet:"appointment",apointment:"appointment",estimte:"estimate",quoet:"quote"};
-  const keep=[];t=String(t||"").replace(/\{[^}]*\}|https?:\/\/\S+|\S+@\S+\.\S+|\$[\w.]+/g,m=>{keep.push(m);return "\u0001"+(keep.length-1)+"\u0001"});
-  t=t.replace(/\bits (ok|okay|a|the|going|time)\b/gi,"it's $1").replace(/[ \t]+/g," ").replace(/ *\n */g,"\n").replace(/\bi\b/g,"I").replace(/\bi(m|ll|ve|d)\b/gi,(m,x)=>"I'"+x.toLowerCase())
-   .replace(/\b[A-Za-z]+\b/g,w=>{const k=w.toLowerCase();return fix[k]&&!(k==="id"&&w==="ID")&&!(k==="lets"&&/^[A-Z]/.test(w)===false&&false)?fix[k]:w})
-   .replace(/(\s*,){2,}/g,",").replace(/^((?:hi|hey|hello)\s+\u0001\d+\u0001)(?=[ ]+[A-Za-z])/gim,"$1,").replace(/\s+([,.!?;:])/g,"$1").replace(/([,;:])(?=\S)/g,"$1 ").replace(/([.!?])(?=[A-Za-z])/g,"$1 ").replace(/([!?.]){2,}/g,m=>m[0]==="."&&m.length>=3?"...":m[0]).replace(/,{2,}/g,",");
-  t=t.split("\n").map(line=>{line=line.trim();if(!line)return line;
-    line=line.replace(/(^|[.!?]\s+)([a-z])/g,(m,a,b)=>a+b.toUpperCase());
-    if(/[A-Za-z0-9)\u0001]$/.test(line))line+=/^(hi|hey|hello|good (morning|afternoon|evening))[^.!?]*$/i.test(line)&&line.length<30?",":"."; return line}).join("\n");
-  return t.replace(/\u0001(\d+)\u0001/g,(m,i)=>keep[+i]).replace(/\bI I\b/g,"I")}
-$("tplpol").onclick=()=>{const v=$("tpl").value,o=polishText(v);if(o!==v){$("tpl").value=o;$("tpl").oninput&&$("tpl").oninput();$("tplpd").textContent="Cleaned up and saved"}else $("tplpd").textContent="Looks good already";$("tplpd").hidden=false;setTimeout(()=>$("tplpd").hidden=true,2600)};
 </script>
 </body>
 </html>
