@@ -681,7 +681,7 @@ function render(){
     <div class="st"><b>${money(customers.filter(r=>r.status==="Paid").reduce((a,r)=>a+(+r.price||0),0))}</b><span>Paid revenue</span></div>`;
   $("chips").innerHTML=["All",...ST].map(s=>`<button class="chip ${s===filter?"on":""}" data-s="${s}">${s}${s==="All"?"":" ("+customers.filter(r=>r.status===s).length+")"}</button>`).join("");
   const list=customers.filter(r=>(filter==="All"||r.status===filter)&&(!q||[r.name,r.phone,r.address,r.email].join(" ").toLowerCase().includes(q)))
-    .sort((a,b)=>(a.follow_up||"9999").localeCompare(b.follow_up||"9999"));
+    .sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))||(a.follow_up||"9999").localeCompare(b.follow_up||"9999"));
   vis=list.filter(r=>(r.phone||"").replace(/\D/g,"")).map(r=>r.id);nph=list.filter(r=>!(r.phone||"").replace(/\D/g,""));
   for(const id of [...sel])if(!customers.some(c=>c.id===id))sel.delete(id);
   updSel();
