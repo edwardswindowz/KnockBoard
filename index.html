@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
+<script>try{if(localStorage.getItem("kb_theme")==="light"){document.documentElement.setAttribute("data-theme","light");document.querySelector('meta[name="theme-color"]').setAttribute("content","#f4f6fa")}}catch(e){}</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="KnockBoard">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -143,6 +144,35 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
 .pc{display:block;width:100%;text-align:left;padding:15px 16px;margin:8px 0;border-radius:14px;font-size:16px;font-weight:700}.pc small{display:block;font-weight:400;font-size:12px;opacity:.8;margin-top:2px}
 .qmode .fullrow{display:none}
 [hidden]{display:none!important}
+
+/* ---- light theme ---- */
+html[data-theme=light] .hd{background:rgba(244,246,250,.9)}
+html[data-theme=light]{--bg:#f4f6fa;--c:#ffffff;--b:#d9dfe9;--t:#111827;--m:#5b6678;color-scheme:light}
+html[data-theme=light] input,html[data-theme=light] select,html[data-theme=light] textarea{background:#fff}
+html[data-theme=light] dialog{background:#fff;box-shadow:0 20px 60px #0003}
+html[data-theme=light] dialog::backdrop{background:#0006}
+html[data-theme=light] .lg{background:transparent}
+html[data-theme=light] .fab,html[data-theme=light] #fabtn{box-shadow:0 8px 22px #1f6bff55,0 3px 10px #0003}
+html[data-theme=light] #gsbar{background:linear-gradient(135deg,#e3f6ec,#fff);border-color:#2fbf7a88}
+html[data-theme=light] #instbar{background:linear-gradient(135deg,#e5eeff,#fff);border-color:#2b7fff88}
+html[data-theme=light] #mv_cats .mc{background:#fff;color:#111827;border-color:#d9dfe9}
+html[data-theme=light] #mv_cats .mc.on{background:#e5eeff;border-color:#2b7fff}
+html[data-theme=light] #mvdlg{background:radial-gradient(500px 300px at 90% 0%,#dbe8ff 0%,#fff 60%)}
+html[data-theme=light] #isteps li{border-top-color:#e3e8f0}
+html[data-theme=light] .wxc{background:#eef4ff;border-color:#9db9ee}html[data-theme=light] .wxc .lb{color:#2b6bd6}html[data-theme=light] .wxr{border-top-color:#dde5f3}
+html[data-theme=light] #msug,html[data-theme=light] .cbp{background:#fff;border-color:#d9dfe9;box-shadow:0 10px 30px #0002}
+html[data-theme=light] .cbo:active{background:#eef1f6}
+html[data-theme=light] .hi img,html[data-theme=light] .hg div,html[data-theme=light] .nxj,html[data-theme=light] .wn{background:#f1f4f9;border-color:#d9dfe9}
+html[data-theme=light] .tabs .chip{background:#eef1f6;border-color:#d9dfe9;color:#445066}
+html[data-theme=light] .tabs .chip.on{background:var(--a);border-color:var(--a);color:#fff}
+html[data-theme=light] .chip:not(.on){color:#445066}
+html[data-theme=light] .fm{background:#fff;color:#111827;border-color:#d9dfe9;box-shadow:0 8px 22px #0003}
+html[data-theme=light] .s-Lead{color:#667085;border-color:#98a2b3}
+html[data-theme=light] .s-Quoted{color:#1c6fc4}
+html[data-theme=light] .s-Done{color:#237a3a}
+html[data-theme=light] .st b{color:var(--t)}
+html[data-theme=light] #fabscrim{background:#0006}
+html[data-theme=light] .due{color:#d33}
 </style>
 </head>
 <body>
@@ -321,6 +351,7 @@ dialog{border-radius:20px;max-height:92dvh;overflow:auto;box-shadow:0 20px 60px 
   <button class="opt" id="editbiz">My business &amp; goals<br><small>Change your trade and what you use KnockBoard for</small></button>
   <button class="opt" id="installbtn">Add to home screen<br><small>Use KnockBoard like an app</small></button>
   <button class="opt" id="motivtog">Daily motivation<br><small id="motivst">Off</small></button>
+  <button class="opt" id="thbtn">Appearance<br><small id="thsm">Dark mode · tap to switch to light</small></button>
   <button class="opt" id="impbtn">Import customers<br><small>Bring your list over from another CRM</small></button>
   <button class="opt" id="gsopt">Get started video<br><small>2-minute setup tour</small></button>
   <button class="opt" id="paybtn">Payments &amp; invoices<br><small id="paysm">Add your Square or Stripe link</small></button>
@@ -1615,6 +1646,13 @@ $("imp_go").onclick=()=>{const out=impPreview();if(!out.length)return;const st=$
   try{out.forEach(o=>mutate("ins","customers",newId(),{name:o.name,phone:o.phone,email:o.email,address:o.address,service:"",status:st,price:0,source:"Imported",job_date:null,follow_up:null,notes:o.notes||null}))}finally{bulkMode=false}
   saveQ();saveC();refresh();netUI();flush();$("impdlg").close();
   const msg="Imported "+out.length+" customer"+(out.length==1?"":"s")+".";if(typeof kbToast==="function")kbToast(msg);else alert(msg)};
+
+/* ---- light / dark mode ---- */
+function themeApply(l){const h=document.documentElement;if(l)h.setAttribute("data-theme","light");else h.removeAttribute("data-theme");
+  const m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",l?"#f4f6fa":"#000000");
+  $("thsm").textContent=l?"Light mode · tap to switch to dark":"Dark mode · tap to switch to light"}
+$("thbtn").onclick=()=>{const l=document.documentElement.getAttribute("data-theme")!=="light";try{localStorage.setItem("kb_theme",l?"light":"dark")}catch(e){}themeApply(l)};
+themeApply(document.documentElement.getAttribute("data-theme")==="light");
 </script>
 </body>
 </html>
