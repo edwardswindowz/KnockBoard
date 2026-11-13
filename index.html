@@ -424,8 +424,10 @@ html[data-theme=light] .gname{background:#fff}
   <h2 style="margin:0 0 8px;font-size:19px">Add photos</h2>
   <label id="ga_cl">Customer</label><select id="ga_c"></select>
   <div id="ga_name" style="font-size:17px;font-weight:700;margin:2px 0 10px" hidden></div>
-  <button class="pri" id="ga_pick" style="width:100%;padding:14px;font-size:16px">Take or choose photos</button>
+  <button id="ga_pick" style="width:100%;padding:14px;font-size:16px">Take or choose photos</button>
   <input id="ga_file" type="file" accept="image/*" multiple hidden>
+  <div class="phstrip" id="ga_prev" hidden></div>
+  <button class="pri" id="ga_save" hidden style="width:100%;padding:14px;font-size:16px;margin-top:8px">Save photos</button>
   <div class="sub" id="ga_msg" style="margin-top:8px"></div>
   <div class="row" style="margin-top:10px;justify-content:flex-end"><button id="ga_view" hidden>View photos</button><button id="ga_x">Close</button></div>
 </dialog>
@@ -1642,15 +1644,28 @@ function phOpenAdd(cid){
   $("ga_c").innerHTML=cs.map(c=>`<option value="${esc(c.id)}">${esc(c.name||"Unnamed")}${c.address?" · "+esc(c.address):""}</option>`).join("");
   if(gaFixed)$("ga_c").value=gaFixed;
   $("ga_c").hidden=$("ga_cl").hidden=!!gaFixed;$("ga_name").hidden=!gaFixed;$("ga_name").textContent=gaFixed?cName(gaFixed):"";
-  $("ga_msg").textContent="";$("ga_view").hidden=true;$("gadd").showModal();
+  gaClear();$("ga_msg").textContent="";$("ga_view").hidden=true;$("gadd").showModal();
   phLoad().then(()=>{const n=phAll.filter(p=>p.customer_id===$("ga_c").value).length;if(n&&!$("ga_msg").textContent){$("ga_msg").textContent=n+" photo"+(n===1?"":"s")+" saved for this customer.";$("ga_view").hidden=false}})}
 $("ga_pick").onclick=()=>$("ga_file").click();
-$("ga_file").onchange=async()=>{
-  const f=$("ga_file").files;if(!f.length)return;const cid=$("ga_c").value;
-  $("ga_pick").disabled=true;const n=await phUpload(f,cid,t=>$("ga_msg").textContent=t);$("ga_pick").disabled=false;$("ga_file").value="";
-  if(n)$("ga_view").hidden=false;phForm(editId);if(!$("tabG").hidden)galRender()};
-$("ga_view").onclick=()=>{galCid=$("ga_c").value;$("gadd").close();if($("dlg").open)$("dlg").close();galKeep=true;goTab("G")};
-$("ga_x").onclick=()=>$("gadd").close();
+let gaStage=[],gaUrls=[];
+function gaClear(){gaUrls.forEach(u=>URL.revokeObjectURL(u));gaStage=[];gaUrls=[];gaDraw()}
+function gaDraw(){const n=gaStage.length;$("ga_prev").hidden=!n;$("ga_save").hidden=!n;
+  $("ga_prev").innerHTML=gaUrls.map(u=>`<img src="${u}" alt="">`).join("");
+  $("ga_save").textContent="Save "+n+" photo"+(n===1?"":"s");$("ga_pick").textContent=n?"Add more photos":"Take or choose photos";$("ga_pick").classList.toggle("pri",!n)}
+$("ga_file").onchange=()=>{
+  [...$("ga_file").files].forEach(f=>{gaStage.push(f);gaUrls.push(URL.createObjectURL(f))});$("ga_file").value="";
+  $("ga_msg").textContent=gaStage.length?"Not saved yet. Tap Save photos.":"";$("ga_view").hidden=true;gaDraw()};
+$("ga_save").onclick=async()=>{
+  if(!gaStage.length)return;const cid=$("ga_c").value,total=gaStage.length;
+  $("ga_save").disabled=$("ga_pick").disabled=true;
+  const n=await phUpload(gaStage,cid,t=>$("ga_msg").textContent=t);
+  $("ga_save").disabled=$("ga_pick").disabled=false;
+  gaStage.splice(0,n).forEach(()=>URL.revokeObjectURL(gaUrls.shift()));gaDraw();
+  if(n===total){$("ga_msg").textContent=n+" photo"+(n===1?"":"s")+" saved to "+cName(cid)+".";$("ga_view").hidden=false}
+  else if(n)$("ga_msg").textContent=n+" saved. "+gaStage.length+" didn't upload. Tap Save photos to retry.";
+  phForm(editId);if(!$("tabG").hidden)galRender()};
+$("ga_view").onclick=()=>{galCid=$("ga_c").value;gaClear();$("gadd").close();if($("dlg").open)$("dlg").close();galKeep=true;goTab("G")};
+$("ga_x").onclick=()=>{if(gaStage.length&&!confirm("These photos aren't saved yet. Close without saving?"))return;gaClear();$("gadd").close()};
 $("gadd_b").onclick=()=>phOpenAdd("");
 
 /* customer edit card */
