@@ -254,6 +254,8 @@ html[data-theme=light] .gcard{background:#fff}html[data-theme=light] .gth{backgr
 #gdlg{padding:12px}#gdlg .gimg{width:100%;max-height:62dvh;object-fit:contain;border-radius:12px;background:#000;display:block}
 .gseg{display:flex;gap:6px;margin:10px 0}.gseg button{flex:1;padding:9px 6px}.gseg button.on{background:var(--a);border-color:var(--a);color:#fff}
 .gcmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}.gcmp figure{margin:0}.gcmp img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;display:block;background:#000}.gcmp figcaption{font-size:13px;font-weight:700;margin-bottom:5px}
+.gname{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px;margin-bottom:8px;border:1px solid var(--b);border-radius:14px;background:var(--card,#101214);color:var(--t)}.gname img{width:52px;height:52px;object-fit:cover;border-radius:10px;flex:none;background:#1a1d22}.gname .gn{flex:1;min-width:0}.gname .gn b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gname .gn span{font-size:12.5px;color:var(--m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+html[data-theme=light] .gname{background:#fff}
 .phstrip{display:flex;gap:6px;overflow-x:auto;margin:8px 0}.phstrip img{width:64px;height:64px;object-fit:cover;border-radius:8px;flex:none}
 </style>
 </head>
@@ -355,8 +357,7 @@ html[data-theme=light] .gcard{background:#fff}html[data-theme=light] .gth{backgr
   </div>
   <div id="tabG" hidden>
     <div class="row" style="align-items:center"><input id="gq" placeholder="Search by customer name" style="flex:1;min-width:0"><button id="gadd_b" class="btn pri">Add photos</button></div>
-    <div class="chips" id="gk" style="margin:10px 0"><button class="chip on" data-k="All">All</button><button class="chip" data-k="before">Before</button><button class="chip" data-k="after">After</button></div>
-    <div id="gfil" class="sub" hidden style="margin-bottom:8px"></div>
+    <div id="gfil" class="row" hidden style="align-items:center;margin:10px 0"><button id="gfil_x" class="mini">Back</button><b id="gfil_n" style="flex:1;font-size:17px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></b></div>
     <div id="galbox"></div>
   </div>
   <div id="tabM" hidden>
@@ -421,25 +422,18 @@ html[data-theme=light] .gcard{background:#fff}html[data-theme=light] .gth{backgr
 
 <dialog id="gadd">
   <h2 style="margin:0 0 8px;font-size:19px">Add photos</h2>
-  <label>Customer</label><select id="ga_c"></select>
-  <label>Type</label>
-  <div class="gseg" id="ga_k"><button type="button" data-k="before" class="on">Before</button><button type="button" data-k="after">After</button><button type="button" data-k="other">Other</button></div>
+  <label id="ga_cl">Customer</label><select id="ga_c"></select>
+  <div id="ga_name" style="font-size:17px;font-weight:700;margin:2px 0 10px" hidden></div>
   <button class="pri" id="ga_pick" style="width:100%;padding:14px;font-size:16px">Take or choose photos</button>
   <input id="ga_file" type="file" accept="image/*" multiple hidden>
   <div class="sub" id="ga_msg" style="margin-top:8px"></div>
-  <div class="row" style="margin-top:10px;justify-content:flex-end"><button id="ga_x">Close</button></div>
+  <div class="row" style="margin-top:10px;justify-content:flex-end"><button id="ga_view" hidden>View photos</button><button id="ga_x">Close</button></div>
 </dialog>
 <dialog id="gdlg">
   <img id="gv_img" class="gimg" alt="">
   <div class="sub" id="gv_info" style="margin-top:8px"></div>
-  <div class="gseg" id="gv_k"><button type="button" data-k="before">Before</button><button type="button" data-k="after">After</button><button type="button" data-k="other">Other</button></div>
   <div class="row"><button id="gv_prev" style="flex:1">Previous</button><button id="gv_next" style="flex:1">Next</button></div>
   <div class="row" style="margin-top:8px;justify-content:space-between"><button id="gv_del" style="color:#ff5c5c">Delete</button><span><button id="gv_save">Save</button> <button id="gv_x" class="pri">Close</button></span></div>
-</dialog>
-<dialog id="gcmp">
-  <h2 style="margin:0 0 8px;font-size:19px" id="gc_t">Before and after</h2>
-  <div class="gcmp"><figure><figcaption>Before</figcaption><img id="gc_b" alt=""></figure><figure><figcaption>After</figcaption><img id="gc_a" alt=""></figure></div>
-  <div class="row" style="margin-top:10px;justify-content:flex-end"><button id="gc_x" class="pri">Close</button></div>
 </dialog>
 
 <dialog id="idlg">
@@ -815,7 +809,7 @@ function cardActs(r,ph,next){
   else if(r.status==="Paid"&&ph){main=`<button class="main" data-rv="${r.id}">Ask for review</button>`;dup=inv}
   else if(inv)main=`<button class="main" data-di="${r.id}">Send invoice</button>`;
   const more=`${dup?`<button data-di="${r.id}">Send invoice</button>`:""}${r.address?`<a class="btn" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${encodeURIComponent(r.address)}">Directions</a>`:""}<button data-share="${r.id}">Share</button>${next?`<button data-adv="${r.id}">Move to ${next}</button>`:""}<button data-edit="${r.id}">Edit</button>`;
-  return `<div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>`:""}${main}<details class="mo"><summary>More</summary><div class="acts">${more}</div></details></div>`}
+  return `<div class="acts">${ph?`<a class="btn" href="tel:${ph}">Call</a><a class="btn" href="sms:${ph}">Text</a>`:""}${main}<button class="main" data-phc="${r.id}">Photos</button><details class="mo"><summary>More</summary><div class="acts">${more}</div></details></div>`}
 let ordMap=null,reord=false,vis2=[];
 function ordGet(){if(!ordMap){ordMap=new Map(lsGet(K("ord"),[]).map((id,i)=>[id,i]))}return ordMap}
 function byOrder(a,b){const m=ordGet(),ia=m.has(a.id)?m.get(a.id):-1,ib=m.has(b.id)?m.get(b.id):-1;
@@ -923,6 +917,7 @@ $("list").onclick=e=>{
   if(e.target.dataset.dq){const r=customers.find(r=>r.id===e.target.dataset.dq);if(r)openQuoteItems(r)}
   if(e.target.dataset.di){const r=customers.find(r=>r.id===e.target.dataset.di);if(r)openDoc("i",cardRec(r))}
   if(e.target.dataset.rv)askReview(e.target.dataset.rv);
+  if(e.target.dataset.phc)phOpenAdd(e.target.dataset.phc);
   if(e.target.dataset.share)shareJob(e.target.dataset.share);
 };
 
@@ -1590,15 +1585,15 @@ document.querySelector(".tabs").onclick=e=>{
   document.querySelectorAll(".tabs .chip").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   document.body.classList.toggle("kmode",t==="K");
   $("tabH").hidden=t!=="H";$("tabC").hidden=t!=="C";$("tabQ").hidden=t!=="Q";$("tabK").hidden=t!=="K";$("tabM").hidden=t!=="M";$("tabG").hidden=t!=="G";$("tabP").hidden=t!=="P";$("fabs").hidden=!(t==="C"||t==="H");fabClose();
-  if(t==="K")initMap();if(t==="M")mInit();if(t==="G")galRender();if(t==="P")calcInit();
+  if(t==="K")initMap();if(t==="M")mInit();if(t==="G"){if(!galKeep)galCid="";galKeep=false;galRender()}if(t==="P")calcInit();
 };
 
 
-/* ---- Photos: upload to a customer, Gallery tab ---- */
-let phAll=[],phUser=null,phErr="",phCache={},galKind="All",galCid="",gV={ids:[],i:0},gAddCid="";
-const PHK={before:"Before",after:"After",other:"Photo"};
+/* ---- Photos: attach to a customer, Gallery tab lists customers ---- */
+let galKeep=false,phAll=[],phUser=null,phErr="",phCache={},galCid="",gV={ids:[],i:0};
 const phThumb=p=>p.path.replace(/\.jpg$/,"_t.jpg");
 const cName=id=>{const c=customers.find(x=>x.id===id);return c?(c.name||"Unnamed"):"Former customer"};
+const byDate=(a,b)=>String(a.taken_at).localeCompare(String(b.taken_at));
 async function phLoad(force){
   if(!user)return;
   if(!force&&phUser===user.id&&!phErr)return;
@@ -1621,7 +1616,7 @@ function phResize(file,max,q){return new Promise((res,rej)=>{
     const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(im,0,0,w,h);URL.revokeObjectURL(u);
     c.toBlob(b=>b?res(b):rej(new Error("resize")),"image/jpeg",q)};
   im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("load"))};im.src=u})}
-async function phUpload(files,cid,kind,say){
+async function phUpload(files,cid,say){
   if(!user||!cid)return 0;let ok=0;const list=[...files];
   for(let i=0;i<list.length;i++){
     say("Uploading "+(i+1)+" of "+list.length+"…");
@@ -1629,7 +1624,7 @@ async function phUpload(files,cid,kind,say){
       const id=newId(),base=user.id+"/"+cid+"/"+id,full=await phResize(list[i],1600,.82),th=await phResize(list[i],360,.75);
       let r=await sb.storage.from("photos").upload(base+".jpg",full,{contentType:"image/jpeg"});if(r.error)throw r.error;
       r=await sb.storage.from("photos").upload(base+"_t.jpg",th,{contentType:"image/jpeg"});if(r.error)throw r.error;
-      const row={id,user_id:user.id,customer_id:cid,path:base+".jpg",kind,taken_at:new Date().toISOString()};
+      const row={id,user_id:user.id,customer_id:cid,path:base+".jpg",kind:"other",taken_at:new Date().toISOString()};
       r=await sb.from("photos").insert(row);if(r.error)throw r.error;
       phAll.unshift(row);ok++;
     }catch(e){
@@ -1638,23 +1633,27 @@ async function phUpload(files,cid,kind,say){
   }
   say(ok+" photo"+(ok===1?"":"s")+" added.");return ok}
 
-/* add dialog */
+/* add dialog: from a customer's Photos button (customer fixed) or the Gallery (pick one) */
+let gaFixed="";
 function phOpenAdd(cid){
   const cs=customers.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
   if(!cs.length){alert("Add a customer first, then you can attach photos to them.");return}
+  gaFixed=cid&&cs.some(c=>c.id===cid)?cid:"";
   $("ga_c").innerHTML=cs.map(c=>`<option value="${esc(c.id)}">${esc(c.name||"Unnamed")}${c.address?" · "+esc(c.address):""}</option>`).join("");
-  if(cid&&cs.some(c=>c.id===cid))$("ga_c").value=cid;
-  $("ga_msg").textContent="";$("gadd").showModal()}
-$("ga_k").onclick=e=>{const k=e.target.dataset.k;if(!k)return;[...$("ga_k").children].forEach(b=>b.classList.toggle("on",b.dataset.k===k))};
+  if(gaFixed)$("ga_c").value=gaFixed;
+  $("ga_c").hidden=$("ga_cl").hidden=!!gaFixed;$("ga_name").hidden=!gaFixed;$("ga_name").textContent=gaFixed?cName(gaFixed):"";
+  $("ga_msg").textContent="";$("ga_view").hidden=true;$("gadd").showModal();
+  phLoad().then(()=>{const n=phAll.filter(p=>p.customer_id===$("ga_c").value).length;if(n&&!$("ga_msg").textContent){$("ga_msg").textContent=n+" photo"+(n===1?"":"s")+" saved for this customer.";$("ga_view").hidden=false}})}
 $("ga_pick").onclick=()=>$("ga_file").click();
 $("ga_file").onchange=async()=>{
-  const f=$("ga_file").files;if(!f.length)return;const kind=($("ga_k").querySelector(".on")||{dataset:{k:"other"}}).dataset.k,cid=$("ga_c").value;
-  $("ga_pick").disabled=true;await phUpload(f,cid,kind,t=>$("ga_msg").textContent=t);$("ga_pick").disabled=false;$("ga_file").value="";
-  phForm(editId);if(!$("tabG").hidden)galRender()};
+  const f=$("ga_file").files;if(!f.length)return;const cid=$("ga_c").value;
+  $("ga_pick").disabled=true;const n=await phUpload(f,cid,t=>$("ga_msg").textContent=t);$("ga_pick").disabled=false;$("ga_file").value="";
+  if(n)$("ga_view").hidden=false;phForm(editId);if(!$("tabG").hidden)galRender()};
+$("ga_view").onclick=()=>{galCid=$("ga_c").value;$("gadd").close();if($("dlg").open)$("dlg").close();galKeep=true;goTab("G")};
 $("ga_x").onclick=()=>$("gadd").close();
-$("gadd_b").onclick=()=>phOpenAdd(galCid);
+$("gadd_b").onclick=()=>phOpenAdd("");
 
-/* customer card section */
+/* customer edit card */
 async function phForm(cid){
   const box=$("f_ph");box.hidden=!cid;if(!cid)return;
   await phLoad();const mine=phAll.filter(p=>p.customer_id===cid);
@@ -1663,63 +1662,57 @@ async function phForm(cid){
   $("f_phs").hidden=false;const show=mine.slice(0,8);await phSign(show.map(phThumb));
   $("f_phs").innerHTML=show.map(p=>`<img src="${esc(phU(phThumb(p)))}" alt="">`).join("")}
 $("f_phadd").onclick=()=>phOpenAdd(editId);
-$("f_phview").onclick=()=>{galCid=editId||"";$("dlg").close();goTab("G")};
+$("f_phview").onclick=()=>{galCid=editId||"";$("dlg").close();galKeep=true;goTab("G")};
 
-/* gallery */
-$("gk").onclick=e=>{const k=e.target.dataset.k;if(!k)return;galKind=k;[...$("gk").children].forEach(b=>b.classList.toggle("on",b.dataset.k===k));galRender()};
+/* gallery: customer names, tap one to see their photos */
 $("gq").addEventListener("input",()=>{clearTimeout(galRender.t);galRender.t=setTimeout(galRender,200)});
+$("gfil_x").onclick=()=>{galCid="";galRender()};
 async function galRender(){
   const box=$("galbox");
   if(!user){box.innerHTML="";return}
   if(!phAll.length&&phUser!==user.id)box.innerHTML='<div class="sub">Loading photos…</div>';
   await phLoad();
   if($("tabG").hidden)return;
-  const fil=$("gfil");
-  if(galCid){fil.hidden=false;fil.innerHTML=`Showing photos for <b>${esc(cName(galCid))}</b> <button class="mini" id="gfil_x">Show all</button>`;$("gfil_x").onclick=()=>{galCid="";galRender()}}else fil.hidden=true;
-  if(phErr){box.innerHTML=phErr==="setup"?'<div class="sub">Photo storage isn\'t set up yet. Ask support to finish setup, then photos will work.</div>':'<div class="sub">Couldn\'t load photos. Check your signal and try again.</div>';return}
-  const q=$("gq").value.trim().toLowerCase();
-  let list=phAll.filter(p=>(galKind==="All"||p.kind===galKind)&&(!galCid||p.customer_id===galCid)&&(!q||cName(p.customer_id).toLowerCase().includes(q)));
-  if(!list.length){box.innerHTML=`<div class="sub" style="padding:18px 4px;line-height:1.5">${phAll.length?"No photos match.":"No photos yet. Tap Add photos to pick a customer and upload before and after pictures, or open a customer and add photos from there."}</div>`;return}
-  const g={};list.forEach(p=>(g[p.customer_id]=g[p.customer_id]||[]).push(p));
-  const ids=Object.keys(g).sort((a,b)=>String(g[b][0].taken_at).localeCompare(String(g[a][0].taken_at)));
-  await phSign(list.map(phThumb));
-  box.innerHTML=ids.map(cid=>{const ps=g[cid].slice().sort((a,b)=>String(a.taken_at).localeCompare(String(b.taken_at))),all=phAll.filter(p=>p.customer_id===cid),hasB=all.some(p=>p.kind==="before"),hasA=all.some(p=>p.kind==="after"),c=customers.find(x=>x.id===cid);
-    return`<div class="gcard"><div class="ghd"><div class="gn"><b>${esc(cName(cid))}</b><span>${ps.length} photo${ps.length===1?"":"s"}${c&&c.address?" · "+esc(c.address):""}</span></div>${hasB&&hasA?`<button class="mini" data-cmp="${esc(cid)}">Compare</button>`:""}<button class="mini" data-add="${esc(cid)}">Add</button></div>
-      <div class="ggrid">${ps.map(p=>`<button class="gth" data-ph="${p.id}" aria-label="${PHK[p.kind]||"Photo"}"><img loading="lazy" src="${esc(phU(phThumb(p)))}" alt=""><span class="gb ${p.kind}">${PHK[p.kind]||"Photo"}</span></button>`).join("")}</div></div>`}).join("")}
+  if(phErr){$("gfil").hidden=true;box.innerHTML=phErr==="setup"?'<div class="sub">Photo storage isn\'t set up yet. Ask support to finish setup, then photos will work.</div>':'<div class="sub">Couldn\'t load photos. Check your signal and try again.</div>';return}
+  const one=!!galCid;$("gfil").hidden=!one;$("gq").parentNode.hidden=one;
+  if(one){
+    $("gfil_n").textContent=cName(galCid);
+    const ps=phAll.filter(p=>p.customer_id===galCid).sort(byDate);
+    if(!ps.length){box.innerHTML='<div class="sub" style="padding:18px 4px">No photos yet for this customer.</div><button class="pri" data-add="'+esc(galCid)+'" style="width:100%;padding:13px">Add photos</button>';return}
+    await phSign(ps.map(phThumb));
+    box.innerHTML=`<div class="ggrid">${ps.map(p=>`<button class="gth" data-ph="${p.id}" aria-label="Photo"><img loading="lazy" src="${esc(phU(phThumb(p)))}" alt=""></button>`).join("")}</div><button class="pri" data-add="${esc(galCid)}" style="width:100%;padding:13px;margin-top:12px">Add photos</button>`;return}
+  const q=$("gq").value.trim().toLowerCase(),g={};
+  phAll.forEach(p=>(g[p.customer_id]=g[p.customer_id]||[]).push(p));
+  let ids=Object.keys(g).filter(cid=>!q||cName(cid).toLowerCase().includes(q));
+  if(!ids.length){box.innerHTML=`<div class="sub" style="padding:18px 4px;line-height:1.5">${phAll.length?"No customers match.":"No photos yet. Open a customer and tap Photos to add pictures, or tap Add photos above."}</div>`;return}
+  ids.sort((a,b)=>cName(a).localeCompare(cName(b)));
+  const lead=ids.map(cid=>g[cid][0]);await phSign(lead.map(phThumb));
+  box.innerHTML=ids.map(cid=>{const ps=g[cid],c=customers.find(x=>x.id===cid);
+    return`<button class="gname" data-cust="${esc(cid)}"><img src="${esc(phU(phThumb(ps[0])))}" alt=""><span class="gn"><b>${esc(cName(cid))}</b><span>${ps.length} photo${ps.length===1?"":"s"}${c&&c.address?" · "+esc(c.address):""}</span></span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>`}).join("")}
 $("galbox").addEventListener("click",e=>{
-  const t=e.target.closest("[data-ph],[data-cmp],[data-add]");if(!t)return;
+  const t=e.target.closest("[data-ph],[data-cust],[data-add]");if(!t)return;
   if(t.dataset.add)return phOpenAdd(t.dataset.add);
-  if(t.dataset.cmp)return phCompare(t.dataset.cmp);
+  if(t.dataset.cust){galCid=t.dataset.cust;galRender();window.scrollTo(0,0);return}
   const p=phAll.find(x=>x.id===t.dataset.ph);if(!p)return;
-  gV.ids=phAll.filter(x=>x.customer_id===p.customer_id&&(galKind==="All"||x.kind===galKind)).sort((a,b)=>String(a.taken_at).localeCompare(String(b.taken_at))).map(x=>x.id);gV.i=Math.max(0,gV.ids.indexOf(p.id));phShow()});
+  gV.ids=phAll.filter(x=>x.customer_id===p.customer_id).sort(byDate).map(x=>x.id);gV.i=Math.max(0,gV.ids.indexOf(p.id));phShow()});
 
 /* viewer */
 async function phShow(){
   const p=phAll.find(x=>x.id===gV.ids[gV.i]);if(!p){$("gdlg").close();return}
   await phSign([p.path]);$("gv_img").src=phU(p.path);
   $("gv_info").textContent=cName(p.customer_id)+" · "+new Date(p.taken_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})+" · "+(gV.i+1)+" of "+gV.ids.length;
-  [...$("gv_k").children].forEach(b=>b.classList.toggle("on",b.dataset.k===p.kind));
   $("gv_prev").disabled=gV.i<=0;$("gv_next").disabled=gV.i>=gV.ids.length-1;
   if(!$("gdlg").open)$("gdlg").showModal()}
 $("gv_prev").onclick=()=>{if(gV.i>0){gV.i--;phShow()}};
 $("gv_next").onclick=()=>{if(gV.i<gV.ids.length-1){gV.i++;phShow()}};
 $("gv_x").onclick=()=>$("gdlg").close();
-$("gv_k").onclick=async e=>{const k=e.target.dataset.k,p=phAll.find(x=>x.id===gV.ids[gV.i]);if(!k||!p||p.kind===k)return;
-  const r=await sb.from("photos").update({kind:k}).eq("id",p.id);if(!r.error){p.kind=k;phShow();galRender()}};
 $("gv_del").onclick=async()=>{const p=phAll.find(x=>x.id===gV.ids[gV.i]);if(!p||!confirm("Delete this photo?"))return;
   try{await sb.storage.from("photos").remove([p.path,phThumb(p)]);const r=await sb.from("photos").delete().eq("id",p.id);if(r.error)throw r.error}catch(e){alert("Couldn't delete the photo. Check your signal and try again.");return}
   phAll=phAll.filter(x=>x.id!==p.id);gV.ids.splice(gV.i,1);if(!gV.ids.length)$("gdlg").close();else{gV.i=Math.min(gV.i,gV.ids.length-1);phShow()}galRender();phForm(editId)};
 $("gv_save").onclick=async()=>{const p=phAll.find(x=>x.id===gV.ids[gV.i]);if(!p)return;
-  try{const b=await (await fetch(phU(p.path))).blob(),f=new File([b],cName(p.customer_id).replace(/[^\w]+/g,"_")+"_"+p.kind+".jpg",{type:"image/jpeg"});
+  try{const b=await (await fetch(phU(p.path))).blob(),f=new File([b],cName(p.customer_id).replace(/[^\w]+/g,"_")+"_"+(gV.i+1)+".jpg",{type:"image/jpeg"});
     if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return}
     const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=f.name;document.body.appendChild(a);a.click();a.remove()}catch(e){}};
-
-/* before / after compare */
-async function phCompare(cid){
-  const ps=phAll.filter(p=>p.customer_id===cid).sort((a,b)=>String(a.taken_at).localeCompare(String(b.taken_at))),
-    b=ps.find(p=>p.kind==="before"),a=ps.slice().reverse().find(p=>p.kind==="after");if(!a||!b)return;
-  await phSign([a.path,b.path]);$("gc_b").src=phU(b.path);$("gc_a").src=phU(a.path);$("gc_t").textContent=cName(cid);$("gcmp").showModal()}
-$("gc_x").onclick=()=>$("gcmp").close();
 
 /* ---- Address suggestions on customer address fields ---- */
 function addrBias(){try{if(typeof map!=="undefined"&&map&&map.getZoom()>6){const c=map.getCenter();return[c.lat,c.lng]}}catch(e){}
