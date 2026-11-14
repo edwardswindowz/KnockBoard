@@ -159,7 +159,7 @@ body.kmode .wrap{padding-bottom:calc(74px + env(safe-area-inset-bottom,0px))}
 #bnav button.on{color:var(--a)}
 body:has(#app[hidden]) #bnav{display:none}
 #stats{grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
-#stats .st{padding:8px 6px;text-align:center}#stats .st b{font-size:17px}#stats .st span{font-size:11px}
+#stats .st{padding:8px 6px;text-align:center;color:var(--t);font:inherit;cursor:pointer}#stats .st.on{border-color:var(--a);box-shadow:0 0 0 1px var(--a)}#stats .st:active{transform:scale(.97)}#stats .st b{font-size:17px}#stats .st span{font-size:11px}
 .tbar{display:flex;gap:8px;align-items:center;margin:0 0 8px}.tbar button{padding:7px 13px}.tbar .sub{flex:1}
 #selpanel{margin-bottom:10px}#selpanel .sendrow{margin-top:0}
 .acts .main{background:var(--a);border-color:var(--a);color:#fff;font-weight:700}
@@ -328,6 +328,7 @@ html[data-theme=light] .gname{background:#fff}
         <div class="sub">{name} becomes each customer's first name. Saved on this phone.</div>
         <label>Your Google review link (for the “Ask for review” button)</label><input id="revlink" placeholder="https://g.page/r/..."><div class="savrow"><button class="pri" data-savefor="revlink">Save</button><span class="savd" hidden>Saved</span></div></details>
     </div>
+    <div id="sfbar" class="row" hidden style="align-items:center;margin:0 0 10px"><b id="sfn" style="flex:1;font-size:15px"></b><button id="sfx" class="mini">Show all</button></div>
     <div id="list"></div>
   </div>
 
@@ -651,7 +652,7 @@ const money=n=>"$"+(+n||0).toLocaleString(undefined,{maximumFractionDigits:0});
 const today=()=>new Date().toLocaleDateString("en-CA");
 const ST=["Lead","Quoted","Scheduled","Done","Paid"],COL={"Sold":"#2f9e44","Quoted":"#1c7ed6","Not home":"#f08c00","No":"#e03131","Dirty":"#ae3ec9","Not now":"#6c7a91"};
 const kindOf=p=>p.result==="Not home"&&p.service==="__dirty"?"Dirty":p.result==="No"&&p.service==="__later"?"Not now":p.result;
-let customers=[],pins=[],filter="All",editId=null,cur=null,map,layer,meMark,mapReady=false,sat=true,base;
+let customers=[],pins=[],statF="",filter="All",editId=null,cur=null,map,layer,meMark,mapReady=false,sat=true,base;
 $("f_status").innerHTML=ST.map(s=>`<option>${s}</option>`).join("");
 
 /* ---------- Login ---------- */
@@ -825,14 +826,18 @@ function render(){
   revUI();if(typeof homeUI==="function"){homeUI();qaList()}
   const q=$("q").value.toLowerCase().trim(),open=customers.filter(r=>["Lead","Quoted"].includes(r.status)),
     due=customers.filter(r=>r.follow_up&&r.follow_up<=today()&&!["Paid","Done"].includes(r.status));
+  const paidL=customers.filter(r=>r.status==="Paid");
   $("stats").innerHTML=
-   `<div class="st"><b>${open.length}</b><span>Open</span></div>
-    <div class="st"><b>${money(open.reduce((a,r)=>a+(+r.price||0),0))}</b><span>Pipeline</span></div>
-    <div class="st"><b>${due.length}</b><span>Follow-ups</span></div>
-    <div class="st"><b>${money(customers.filter(r=>r.status==="Paid").reduce((a,r)=>a+(+r.price||0),0))}</b><span>Paid</span></div>`;
+   `<button class="st ${statF==="open"?"on":""}" data-sf="open"><b>${open.length}</b><span>Open</span></button>
+    <button class="st ${statF==="pipe"?"on":""}" data-sf="pipe"><b>${money(open.reduce((a,r)=>a+(+r.price||0),0))}</b><span>Pipeline</span></button>
+    <button class="st ${statF==="due"?"on":""}" data-sf="due"><b>${due.length}</b><span>Follow-ups</span></button>
+    <button class="st ${statF==="paid"?"on":""}" data-sf="paid"><b>${money(paidL.reduce((a,r)=>a+(+r.price||0),0))}</b><span>Paid</span></button>`;
+  const SFN={open:"Open customers",pipe:"Pipeline, biggest first",due:"Follow-ups due",paid:"Paid customers"};
+  $("sfbar").hidden=!statF;if(statF)$("sfn").textContent=SFN[statF];
   $("chips").innerHTML=["All",...ST].map(s=>`<button class="chip ${s===filter?"on":""}" data-s="${s}">${s}${s==="All"?"":" ("+customers.filter(r=>r.status===s).length+")"}</button>`).join("");
-  const list=customers.filter(r=>(filter==="All"||r.status===filter)&&(!q||[r.name,r.phone,r.address,r.email].join(" ").toLowerCase().includes(q)))
-    .sort(byOrder);
+  const sfSet=statF==="open"||statF==="pipe"?open:statF==="due"?due:statF==="paid"?paidL:null;
+  const list=customers.filter(r=>(filter==="All"||r.status===filter)&&(!sfSet||sfSet.includes(r))&&(!q||[r.name,r.phone,r.address,r.email].join(" ").toLowerCase().includes(q)))
+    .sort(statF==="pipe"?(a,b)=>(+b.price||0)-(+a.price||0):statF==="due"?(a,b)=>String(a.follow_up).localeCompare(String(b.follow_up)):byOrder);
   vis2=list.map(r=>r.id);
   vis=list.filter(r=>(r.phone||"").replace(/\D/g,"")).map(r=>r.id);nph=list.filter(r=>!(r.phone||"").replace(/\D/g,""));
   for(const id of [...sel])if(!customers.some(c=>c.id===id))sel.delete(id);
@@ -909,7 +914,9 @@ $("save").onclick=()=>{
 };
 $("del").onclick=()=>{if(editId&&confirm("Delete this customer?")){mutate("del","customers",editId);$("dlg").close()}};
 $("q").oninput=render;
-$("chips").onclick=e=>{const s=e.target.dataset.s;if(s){filter=s;render()}};
+$("chips").onclick=e=>{const s=e.target.dataset.s;if(s){filter=s;if(s!=="All")statF="";render()}};
+$("stats").onclick=e=>{const b=e.target.closest("[data-sf]");if(!b)return;const k=b.dataset.sf;statF=statF===k?"":k;filter="All";render();if(statF)$("sfbar").scrollIntoView({block:"nearest"})};
+$("sfx").onclick=()=>{statF="";render()};
 $("list").onclick=e=>{
   if(e.target.dataset.sel){const id=e.target.dataset.sel;e.target.checked?sel.add(id):sel.delete(id);updSel();return}
   const ed=e.target.dataset.edit,adv=e.target.dataset.adv;
